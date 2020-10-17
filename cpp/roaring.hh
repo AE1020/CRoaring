@@ -11,6 +11,19 @@ A C++ header for Roaring Bitmaps.
 #include <new>
 #include <stdexcept>
 #include <string>
+#ifdef ROARING_DOUBLECHECK_CPP
+    /**
+     * When ROARING_DOUBLECHECK_CPP is defined, a `std::set` is kept parallel
+     * to the Roaring Bitset on every method call--ensuring the structures are
+     * equivalent and that the APIs return consistent results.
+     *
+     * `amalgamation.sh` removes code inside `#ifdef ROARING_DOUBLECHECK_CPP`
+     * blocks using sed, to keep the shipping version of `roaring.hh` clean.
+     */
+    #include <set>  // sorted set, typically a red-black tree implementation
+    #include <algorithm>  // note that some algorithms require pre-sorted data
+    #include <assert.h>
+#endif
 
 class RoaringSetBitForwardIterator;
 
@@ -28,6 +41,10 @@ class Roaring {
      */
     Roaring(size_t n, const uint32_t *data) : Roaring() {
         roaring_bitmap_add_many(&roaring, n, data);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        for (size_t i = 0; i < n; ++i)
+            check.insert(data[i]);
+      #endif
     }
 
     /**
@@ -42,6 +59,9 @@ class Roaring {
         }
         roaring_bitmap_set_copy_on_write(&roaring,
             roaring_bitmap_get_copy_on_write(&r.roaring));
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check = r.check;
+      #endif
     }
 
     /**
@@ -51,6 +71,9 @@ class Roaring {
     Roaring(Roaring &&r) noexcept {
         roaring = std::move(r.roaring);
         ra_init(&r.roaring.high_low_container);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check = std::move(r.check);
+      #endif
     }
 
     /**
@@ -64,6 +87,13 @@ class Roaring {
         roaring.high_low_container = s->high_low_container;
         // deallocate the old container
         free(s);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        roaring_iterate(&roaring,
+            [](uint32_t value, void* param) {  // use lambda func for callback
+                reinterpret_cast<Roaring*>(param)->check.insert(value);
+                return true;
+            }, this);
+      #endif
     }
 
     /**
@@ -84,21 +114,42 @@ class Roaring {
      * Add value x
      *
      */
-    void add(uint32_t x) { roaring_bitmap_add(&roaring, x); }
+    void add(uint32_t x) {
+        roaring_bitmap_add(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check.insert(x);
+      #endif
+    }
 
     /**
      * Add value x
      * Returns true if a new value was added, false if the value was already existing.
      */
-    bool addChecked(uint32_t x) { 
-        return roaring_bitmap_add_checked(&roaring, x);
+    bool addChecked(uint32_t x) {
+        bool ans = roaring_bitmap_add_checked(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        bool was_in_set = check.insert(x).second;  // insert -> pair<iter,bool>
+        assert(ans == was_in_set);
+        (void)was_in_set;  // unused besides assert
+      #endif
+        return ans;
     }
 
     /**
     * add if all values from x (included) to y (excluded)
     */
     void addRange(const uint64_t x, const uint64_t y)  {
-        return roaring_bitmap_add_range(&roaring, x, y);
+        roaring_bitmap_add_range(&roaring, x, y);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        if (x != y) {  // repeat add_range_closed() cast and bounding logic
+            uint32_t min = static_cast<uint32_t>(x);
+            uint32_t max = static_cast<uint32_t>(y - 1);
+            if (min <= max) {
+                for (uint32_t val = max; val != min - 1; --val)
+                    check.insert(val);
+            }
+        }
+      #endif
     }
 
     /**
@@ -107,52 +158,117 @@ class Roaring {
      */
     void addMany(size_t n_args, const uint32_t *vals) {
         roaring_bitmap_add_many(&roaring, n_args, vals);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        for (size_t i = 0; i < n_args; ++i)
+            check.insert(vals[i]);
+      #endif
     }
 
     /**
      * Remove value x
      *
      */
-    void remove(uint32_t x) { roaring_bitmap_remove(&roaring, x); }
+    void remove(uint32_t x) {
+        roaring_bitmap_remove(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check.erase(x);
+      #endif
+    }
 
     /**
      * Remove value x
      * Returns true if a new value was removed, false if the value was not existing.
      */
     bool removeChecked(uint32_t x) {
-        return roaring_bitmap_remove_checked(&roaring, x);
+        bool ans = roaring_bitmap_remove_checked(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        size_t num_removed = check.erase(x);
+        assert(ans == (num_removed == 1));
+        (void)num_removed;  // unused besides assert
+      #endif
+        return ans;
     }
 
     /**
      * Return the largest value (if not empty)
      *
      */
-    uint32_t maximum() const { return roaring_bitmap_maximum(&roaring); }
+    uint32_t maximum() const {
+        uint32_t ans = roaring_bitmap_maximum(&roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(check.empty() ? ans == 0 : ans == *check.rbegin());
+      #endif
+        return ans;
+    }
 
     /**
     * Return the smallest value (if not empty)
     *
     */
-    uint32_t minimum() const { return roaring_bitmap_minimum(&roaring); }
+    uint32_t minimum() const {
+        uint32_t ans = roaring_bitmap_minimum(&roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(check.empty() ? ans == UINT32_MAX : ans == *check.begin());
+      #endif
+        return ans;
+    }
 
     /**
      * Check if value x is present
      */
     bool contains(uint32_t x) const {
-        return roaring_bitmap_contains(&roaring, x);
+        bool ans = roaring_bitmap_contains(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == (check.find(x) != check.end()));
+      #endif
+        return ans;
     }
 
     /**
     * Check if all values from x (included) to y (excluded) are present
     */
     bool containsRange(const uint64_t x, const uint64_t y) const {
-        return roaring_bitmap_contains_range(&roaring, x, y);
+        bool ans = roaring_bitmap_contains_range(&roaring, x, y);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.find(x);
+        if (x >= y)
+            assert(ans == true);  // roaring says true for this
+        else if (it == check.end())
+            assert(ans == false);  // start of range not in set
+        else {
+            uint64_t last = x;  // iterate up to y so long as values sequential
+            while (++it != check.end() && last + 1 == *it && *it < y)
+                last = *it;
+            assert(ans == (last == y - 1));
+        }
+      #endif
+        return ans;
     }
+
+  #ifdef ROARING_DOUBLECHECK_CPP
+    bool does_std_set_match_roaring() const {
+      auto it = check.begin();
+      if (!roaring_iterate(&roaring,
+          [](uint32_t value, void* param) {  // C function (no lambda captures)
+              auto it_ptr = reinterpret_cast<decltype(it)*>(param);
+              return value == *(*it_ptr)++;
+          }, &it)
+      ){
+          return false;  // roaring_iterate is false if iter func returns false
+      }
+      return it == check.end();  // should have visited all values
+    }
+  #endif
 
     /**
      * Destructor
      */
-    ~Roaring() { ra_clear(&roaring.high_low_container); }
+    ~Roaring() {
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(does_std_set_match_roaring());  // always check on destructor
+      #endif
+        ra_clear(&roaring.high_low_container);
+    }
 
     /**
      * Copies the content of the provided bitmap, and
@@ -168,6 +284,9 @@ class Roaring {
         }
         roaring_bitmap_set_copy_on_write(&roaring,
             roaring_bitmap_get_copy_on_write(&r.roaring));
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check = r.check;
+      #endif
         return *this;
     }
 
@@ -179,6 +298,9 @@ class Roaring {
         ra_clear(&roaring.high_low_container);
         roaring = std::move(r.roaring);
         ra_init(&r.roaring.high_low_container);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check = std::move(r.check);
+      #endif
         return *this;
     }
 
@@ -190,6 +312,16 @@ class Roaring {
      */
     Roaring &operator&=(const Roaring &r) {
         roaring_bitmap_and_inplace(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto r_it = r.check.begin();
+        while (it != check.end() && r_it != r.check.end()) {
+            if (*it < *r_it) { it = check.erase(it); }
+            else if (*r_it < *it) { ++r_it; }
+            else { ++it; ++r_it; }  // overlapped
+        }
+        check.erase(it, check.end());  // erase rest of check not in r.check
+      #endif
         return *this;
     }
 
@@ -201,6 +333,10 @@ class Roaring {
      */
     Roaring &operator-=(const Roaring &r) {
         roaring_bitmap_andnot_inplace(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        for (auto value : r.check)
+            check.erase(value);  // Note std::remove() is not for ordered sets
+      #endif
         return *this;
     }
 
@@ -213,6 +349,9 @@ class Roaring {
      */
     Roaring &operator|=(const Roaring &r) {
         roaring_bitmap_or_inplace(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        check.insert(r.check.begin(), r.check.end());
+      #endif
         return *this;
     }
 
@@ -224,38 +363,86 @@ class Roaring {
      */
     Roaring &operator^=(const Roaring &r) {
         roaring_bitmap_xor_inplace(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end) { check = r.check; }  // this empty
+        else if (r_it == r_it_end) { }  // r empty
+        else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            check.insert(r.check.begin(), r.check.end());  // obvious disjoint
+        } else while (r_it != r_it_end) {  // may overlap
+            if (it == it_end) { check.insert(*r_it); ++r_it; }
+            else if (*it == *r_it) {  // remove overlapping value
+                it = check.erase(it);  // returns *following* iterator
+                ++r_it;
+            }
+            else if (*it < *r_it) { ++it; }  // keep value from this
+            else { check.insert(*r_it); ++r_it; }  // add value from r
+        }
+      #endif
         return *this;
     }
 
     /**
      * Exchange the content of this bitmap with another.
      */
-    void swap(Roaring &r) { std::swap(r.roaring, roaring); }
+    void swap(Roaring &r) {
+        std::swap(r.roaring, roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        std::swap(r.check, check);
+      #endif
+    }
 
     /**
      * Get the cardinality of the bitmap (number of elements).
      */
     uint64_t cardinality() const {
-        return roaring_bitmap_get_cardinality(&roaring);
+        uint64_t ans = roaring_bitmap_get_cardinality(&roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == check.size());
+      #endif
+        return ans;
     }
 
     /**
     * Returns true if the bitmap is empty (cardinality is zero).
     */
-    bool isEmpty() const { return roaring_bitmap_is_empty(&roaring); }
+    bool isEmpty() const {
+        bool ans = roaring_bitmap_is_empty(&roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == check.empty());
+      #endif
+        return ans;
+    }
 
     /**
     * Returns true if the bitmap is subset of the other.
     */
     bool isSubset(const Roaring &r) const {
-        return roaring_bitmap_is_subset(&roaring, &r.roaring);
+        bool ans = roaring_bitmap_is_subset(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == std::includes(
+            r.check.begin(), r.check.end(),  // containing range
+            check.begin(), check.end()  // range to test for containment
+        ));
+      #endif
+        return ans;
     }
 
     /**
     * Returns true if the bitmap is strict subset of the other.
     */
     bool isStrictSubset(const Roaring &r) const {
-        return roaring_bitmap_is_strict_subset(&roaring, &r.roaring);
+        bool ans = roaring_bitmap_is_strict_subset(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == (std::includes(
+            r.check.begin(), r.check.end(),  // containing range
+            check.begin(), check.end()  // range to test for containment
+        ) && r.check.size() > check.size()));
+      #endif
+        return ans;
     }
 
     /**
@@ -279,7 +466,11 @@ class Roaring {
      * Return true if the two bitmaps contain the same elements.
      */
     bool operator==(const Roaring &r) const {
-        return roaring_bitmap_equals(&roaring, &r.roaring);
+        bool ans = roaring_bitmap_equals(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(ans == (check == r.check));
+      #endif
+        return ans;
     }
 
     /**
@@ -288,6 +479,20 @@ class Roaring {
      */
     void flip(uint64_t range_start, uint64_t range_end) {
         roaring_bitmap_flip_inplace(&roaring, range_start, range_end);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        if (range_start < range_end) {
+            if (range_end >= UINT64_C(0x100000000))
+                range_end = UINT64_C(0x100000000);
+            auto hint = check.lower_bound(range_start);  // *hint stays as >= i
+            auto it_end = check.end();
+            for (uint64_t i = range_start; i < range_end; ++i) {
+                if (hint == it_end || *hint > i)  // i not present, so add
+                    check.insert(hint, i);  // leave hint past i
+                else  // *hint == i, must adjust hint and erase
+                    hint = check.erase(hint);  // returns *following* iterator
+            }
+        }
+      #endif
     }
 
     /**
@@ -322,6 +527,9 @@ class Roaring {
      */
     void iterate(roaring_iterator iterator, void *ptr) const {
         roaring_iterate(&roaring, iterator, ptr);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        assert(does_std_set_match_roaring());  // checks equivalent iteration
+      #endif
     }
 
     /**
@@ -332,7 +540,15 @@ class Roaring {
      *   Otherwise, it returns false.
      */
     bool select(uint32_t rnk, uint32_t *element) const {
-        return roaring_bitmap_select(&roaring, rnk, element);
+        bool ans = roaring_bitmap_select(&roaring, rnk, element);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        for (uint32_t i = 0; it != it_end && i < rnk; ++i)
+            ++it;
+        assert(ans == (it != it_end) && (ans ? *it == *element : true));
+      #endif
+        return ans;
     }
 
     /**
@@ -340,7 +556,27 @@ class Roaring {
      *
      */
     uint64_t and_cardinality(const Roaring &r) const {
-        return roaring_bitmap_and_cardinality(&roaring, &r.roaring);
+        uint64_t ans = roaring_bitmap_and_cardinality(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end || r_it == r_it_end) {
+            assert(ans == 0);  // if either is empty then no intersection
+        } else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            assert(ans == 0);  // obvious disjoint
+        } else {  // may overlap
+            uint64_t count = 0;
+            while (it != it_end && r_it != r_it_end) {
+                if (*it == *r_it) { ++count; ++it; ++r_it; }  // count overlap
+                else if (*it < *r_it) { ++it; }
+                else { ++r_it; }
+            }
+            assert(ans == count);
+        }
+      #endif
+        return ans;
     }
 
     /**
@@ -348,7 +584,25 @@ class Roaring {
      *
      */
     bool intersect(const Roaring &r) const {
-    	 return roaring_bitmap_intersect(&roaring, &r.roaring);
+    	bool ans = roaring_bitmap_intersect(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end || r_it == r_it_end) {
+            assert(ans == false);  // if either are empty, no intersection
+        } else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            assert(ans == false);  // obvious disjoint
+        } else while (it != it_end && r_it != r_it_end) {  // may overlap
+            if (*it == *r_it) { assert(ans == true); goto done; }  // overlap
+            else if (*it < *r_it) { ++it; }
+            else { ++r_it; }
+        }
+        assert(ans == false);
+      done:  // (could use lambda vs goto, but debug step in lambdas is poor)
+      #endif
+         return ans;
     }
 
     /**
@@ -368,7 +622,30 @@ class Roaring {
      *
      */
     uint64_t or_cardinality(const Roaring &r) const {
-        return roaring_bitmap_or_cardinality(&roaring, &r.roaring);
+        uint64_t ans = roaring_bitmap_or_cardinality(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end) { assert(ans == r.check.size()); }  // this empty
+        else if (r_it == r_it_end) { assert(ans == check.size()); }  // r empty
+        else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            assert(ans == check.size() + r.check.size());  // obvious disjoint
+        } else {
+            uint64_t count = 0;
+            while (it != it_end || r_it != r_it_end) {
+                ++count;  // note matching case counts once but bumps both
+                if (it == it_end) { ++r_it; }
+                else if (r_it == r_it_end) { ++it; }
+                else if (*it == *r_it) { ++it; ++r_it; }  // matching case
+                else if (*it < *r_it) { ++it; }
+                else { ++r_it; }
+            }
+            assert(ans == count);
+        }
+      #endif
+        return ans;
     }
 
     /**
@@ -376,7 +653,27 @@ class Roaring {
      *
      */
     uint64_t andnot_cardinality(const Roaring &r) const {
-        return roaring_bitmap_andnot_cardinality(&roaring, &r.roaring);
+        uint64_t ans = roaring_bitmap_andnot_cardinality(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end) { assert(ans == 0); }  // this empty
+        else if (r_it == r_it_end) { assert(ans == check.size()); }  // r empty
+        else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            assert(ans == check.size());  // disjoint so nothing removed
+        } else {  // may overlap
+            uint64_t count = check.size();  // start with cardinality of this
+            while (it != it_end && r_it != r_it_end) {
+                if (*it == *r_it) { --count; ++it; ++r_it; }  // remove overlap
+                else if (*it < *r_it) { ++it; }
+                else { ++r_it; }
+            }
+            assert(ans == count);
+        }
+      #endif
+        return ans;
     }
 
     /**
@@ -385,7 +682,29 @@ class Roaring {
      *
      */
     uint64_t xor_cardinality(const Roaring &r) const {
-        return roaring_bitmap_xor_cardinality(&roaring, &r.roaring);
+        uint64_t ans = roaring_bitmap_xor_cardinality(&roaring, &r.roaring);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        auto it = check.begin();
+        auto it_end = check.end();
+        auto r_it = r.check.begin();
+        auto r_it_end = r.check.end();
+        if (it == it_end) { assert(ans == r.check.size()); }  // this empty
+        else if (r_it == r_it_end) { assert(ans == check.size()); }  // r empty
+        else if (*it > *r.check.rbegin() || *r_it > *check.rbegin()) {
+            assert(ans == check.size() + r.check.size());  // obvious disjoint
+        } else {  // may overlap
+            uint64_t count = 0;
+            while (it != it_end || r_it != r_it_end) {
+                if (it == it_end) { ++count; ++r_it; }
+                else if (r_it == r_it_end) { ++count; ++it; }
+                else if (*it == *r_it) { ++it; ++r_it; }  // overlap uncounted
+                else if (*it < *r_it) { ++count; ++it; }
+                else { ++count; ++r_it; }
+            }
+            assert(ans == count);
+        }
+      #endif
+        return ans;
     }
 
     /**
@@ -396,7 +715,18 @@ class Roaring {
     * 1 when ranking the smallest value, but the select function returns the
     * smallest value when using index 0.
     */
-    uint64_t rank(uint32_t x) const { return roaring_bitmap_rank(&roaring, x); }
+    uint64_t rank(uint32_t x) const {
+        uint64_t ans = roaring_bitmap_rank(&roaring, x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        uint64_t count = 0;
+        auto it = check.begin();
+        auto it_end = check.end();
+        for (; it != it_end && *it <= x; ++it)
+            ++count;
+        assert(ans == count);
+      #endif
+        return ans;
+    }
 
     /**
     * write a bitmap to a char buffer. This is meant to be compatible with
@@ -500,7 +830,12 @@ class Roaring {
         if (r == NULL) {
             throw std::runtime_error("failed materalization in and");
         }
-        return Roaring(r);
+        Roaring ans(r);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        Roaring inplace(*this);
+        assert(ans == (inplace &= o));
+      #endif
+        return ans;
     }
 
     /**
@@ -512,7 +847,12 @@ class Roaring {
         if (r == NULL) {
             throw std::runtime_error("failed materalization in andnot");
         }
-        return Roaring(r);
+        Roaring ans(r);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        Roaring inplace(*this);
+        assert(ans == (inplace -= o));
+      #endif
+        return ans;
     }
 
     /**
@@ -524,7 +864,12 @@ class Roaring {
         if (r == NULL) {
             throw std::runtime_error("failed materalization in or");
         }
-        return Roaring(r);
+        Roaring ans(r);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        Roaring inplace(*this);
+        assert(ans == (inplace |= o));
+      #endif
+        return ans;
     }
 
     /**
@@ -536,7 +881,12 @@ class Roaring {
         if (r == NULL) {
             throw std::runtime_error("failed materalization in xor");
         }
-        return Roaring(r);
+        Roaring ans(r);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        Roaring inplace(*this);
+        assert(ans == (inplace ^= o));
+      #endif
+        return ans;
     }
 
     /**
@@ -602,6 +952,16 @@ class Roaring {
         }
         Roaring ans(c_ans);
         free(x);
+      #ifdef ROARING_DOUBLECHECK_CPP
+        if (n == 0)
+            assert(ans.cardinality() == 0);
+        else {
+            Roaring temp = *inputs[0];
+            for (size_t i = 1; i < n; ++i)
+                temp |= *inputs[i];
+            assert(temp == ans);
+        }
+      #endif
         return ans;
     }
 
@@ -628,6 +988,10 @@ class Roaring {
     const_iterator &end() const;
 
     roaring_bitmap_t roaring;
+
+  #ifdef ROARING_DOUBLECHECK_CPP
+    std::set<uint32_t> check;  // kept mirrored with `roaring` for testing
+  #endif
 };
 
 /**

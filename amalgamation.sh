@@ -50,7 +50,14 @@ done
 
 function stripinc()
 {
-    sed -e '/# *include *"/d' -e '/# *include *<roaring\//d'
+    # Also strips out ROARING_DOUBLECHECK_CPP code using sed ranges:
+    # https://www.grymoire.com/Unix/Sed.html#uh-29
+    #
+    # This can't handle nested #ifdef, consider `unifdef` if that is needed:
+    # http://dotat.at/prog/unifdef/
+
+    sed -e '/# *include *"/d' -e '/# *include *<roaring\//d' \
+        -e '/#ifdef ROARING_DOUBLECHECK_CPP/,/#endif/ d'
 }
 function dofile()
 {

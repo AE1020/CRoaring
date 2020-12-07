@@ -87,6 +87,9 @@ bool ra_init_with_capacity(roaring_array_t *new_ra, uint32_t cap) {
       // Narrowing is safe because of above check
       new_ra->allocation_size = (int32_t)cap;
     }
+
+    new_ra->user_data = NULL;  // initialize for roaring_bitmap_get_user_data()
+
     return true;
 }
 

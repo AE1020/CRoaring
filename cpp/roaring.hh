@@ -93,6 +93,23 @@ class Roaring {
     }
 
     /**
+     * Stow arbitrary value in roaring bitmap structure, initial state is NULL.
+     *
+     * Note: In C++ it may be preferable to put associated data in a derived
+     * class of Roaring, for type correctness and constructors/destructors.
+     */
+    void *getUserData() {
+        return api::roaring_bitmap_get_user_data(&roaring);
+    }
+
+    /**
+     * Get arbitrary pointer associated with roaring bitmap.
+     */
+    void setUserData(void *user_data) {
+        api::roaring_bitmap_set_user_data(&roaring, user_data);
+    }
+
+    /**
      * Add value x
      *
      */

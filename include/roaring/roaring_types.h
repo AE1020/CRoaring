@@ -58,6 +58,7 @@ typedef struct roaring_array_s {
     uint16_t *keys;
     uint8_t *typecodes;
     uint8_t flags;
+    void *user_data;
 } roaring_array_t;
 
 

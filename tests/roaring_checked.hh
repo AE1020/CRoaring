@@ -104,6 +104,14 @@ class Roaring {
         return ans;
     }
 
+    void *getUserData() {
+        return plain.getUserData();
+    }
+
+    void setUserData(void *user_data) {
+        plain.setUserData(user_data);
+    }
+
     void add(uint32_t x) {
         plain.add(x);
         check.insert(x);

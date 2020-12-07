@@ -34,6 +34,13 @@ bool roaring_iterator_sumall64(uint64_t value, void *param) {
     return true;  // we always process all values
 }
 
+DEFINE_TEST(test_user_data) {
+    int x = 1;
+    Roaring r;
+    assert_true(NULL == r.getUserData());  // guaranteed by API
+    r.setUserData(&x);
+    assert_true(&x == r.getUserData());
+}
 
 DEFINE_TEST(serial_test) {
   uint32_t values[] = {5, 2, 3, 4, 1};
@@ -597,6 +604,7 @@ DEFINE_TEST(test_cpp_bidirectional_iterator_64) {
 
 int main() {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_user_data),
         cmocka_unit_test(serial_test),
         cmocka_unit_test(test_example_true),
         cmocka_unit_test(test_example_false),

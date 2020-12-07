@@ -81,6 +81,18 @@ static inline void roaring_bitmap_set_copy_on_write(roaring_bitmap_t* r,
 }
 
 /**
+ * Each roaring bitmap instance allows you to stow a pointer in the structure
+ * for arbitrary purposes.  Its initial state is NULL.
+ */
+static inline void *roaring_bitmap_get_user_data(const roaring_bitmap_t* r) {
+    return r->high_low_container.user_data;
+}
+static inline void roaring_bitmap_set_user_data(roaring_bitmap_t* r,
+                                                void *user_data) {
+    r->high_low_container.user_data = user_data;
+}
+
+/**
  * Describe the inner structure of the bitmap.
  */
 void roaring_bitmap_printf_describe(const roaring_bitmap_t *r);

@@ -6,12 +6,18 @@
 #ifndef INCLUDE_CONTAINERS_CONVERT_H_
 #define INCLUDE_CONTAINERS_CONVERT_H_
 
+#include <roaring/roaring_types.h>
+
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
 #include <roaring/containers/run.h>
 
 #ifdef __cplusplus
-extern "C" { namespace roaring { namespace internal {
+extern "C" { namespace roaring {
+
+using api::roaring_bitmap_t;
+
+namespace internal {
 #endif
 
 /* Convert an array into a bitset. The input container is not freed or modified.

@@ -24,6 +24,15 @@ enum {
     NO_OFFSET_THRESHOLD = 4
 };
 
+// The roaring_bitmap_t type is a struct that only contains roaring_array_t.
+// This means it is safe to get a roaring_bitmap_t by casting the address:
+//
+// https://stackoverflow.com/a/49334058
+//
+inline static roaring_bitmap_t *r_from_ra(roaring_array_t *ra)
+    { return (roaring_bitmap_t*)ra; }
+
+
 /**
  * Create a new roaring array
  */

@@ -16,10 +16,6 @@
 extern "C" { namespace roaring { namespace api {
 #endif
 
-typedef struct roaring_bitmap_s {
-    roaring_array_t high_low_container;
-} roaring_bitmap_t;
-
 /**
  * Dynamically allocates a new bitmap (initially empty).
  * Returns NULL if the allocation fails.

@@ -61,6 +61,11 @@ typedef struct roaring_array_s {
 } roaring_array_t;
 
 
+typedef struct roaring_bitmap_s {
+    roaring_array_t high_low_container;
+} roaring_bitmap_t;
+
+
 typedef bool (*roaring_iterator)(uint32_t value, void *param);
 typedef bool (*roaring_iterator64)(uint64_t value, void *param);
 

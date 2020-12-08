@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <roaring/roaring_types.h>
+
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
 #include <roaring/containers/convert.h>
@@ -19,7 +21,11 @@
 #include <roaring/bitset_util.h>
 
 #ifdef __cplusplus
-extern "C" { namespace roaring { namespace internal {
+extern "C" { namespace roaring { 
+
+using api::roaring_bitmap_t;
+
+namespace internal {
 #endif
 
 // would enum be possible or better?

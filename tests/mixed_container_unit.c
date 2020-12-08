@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "roaring/roaring.h"
+
 #include <roaring/containers/containers.h>
 #include <roaring/containers/mixed_andnot.h>
 #include <roaring/containers/mixed_intersection.h>

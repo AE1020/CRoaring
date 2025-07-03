@@ -14,6 +14,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>  // access to pure C exported API for testing
 #include <roaring/roaring.hh>
@@ -25,7 +27,6 @@ using roaring::Roaring;       // the C++ wrapper class
 using roaring::Roaring64Map;  // C++ class extended for 64-bit numbers
 
 #include "roaring64map_checked.hh"
-#include "test.h"
 
 static_assert(std::is_nothrow_move_constructible<Roaring>::value,
               "Expected Roaring to be no except move constructable");

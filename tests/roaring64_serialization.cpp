@@ -7,11 +7,12 @@
 #include <string>
 #include <vector>
 
+#include "test.h"
+
 #include <roaring/portability.h>
 #include <roaring/roaring64.h>
 
 #include "config.h"
-#include "test.h"
 
 using namespace roaring::api;
 
@@ -35,7 +36,7 @@ bool test_serialization(const std::string& filename) {
         return false;
     }
     if (!roaring64_bitmap_internal_validate(r, &reason)) {
-        fail_msg("Validation failed: %s", reason);
+        cmocka_fail_msg("Validation failed: %s", reason);
     }
 
     // Reserialize.
@@ -118,7 +119,7 @@ DEFINE_TEST(test_64deseroverlappingkeys) {
     const char* reason = nullptr;
     if (r != nullptr) {
         if (roaring64_bitmap_internal_validate(r, &reason)) {
-            fail_msg(
+            cmocka_fail_msg(
                 "Validation must fail if a bitmap was returned, duplicate keys "
                 "are not allowed.");
         }
@@ -168,7 +169,7 @@ DEFINE_TEST(test_64deseroverlappingupper32) {
     const char* reason = nullptr;
     if (r != nullptr) {
         if (roaring64_bitmap_internal_validate(r, &reason)) {
-            fail_msg(
+            cmocka_fail_msg(
                 "Validation must fail if a bitmap was returned, duplicate keys "
                 "are not allowed.");
         }

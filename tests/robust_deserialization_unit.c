@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>
 
@@ -16,7 +18,6 @@ using namespace roaring::api;
 using namespace roaring::misc;
 #endif
 #include "config.h"
-#include "test.h"
 
 #define MAX_CONTAINERS (1 << 16)
 
@@ -135,7 +136,7 @@ static void invalid_deserialize_test(const void* vdata, size_t size,
     size_t serialized_size =
         roaring_bitmap_portable_deserialize_size(data, size);
     if (serialized_size != size) {
-        fail_msg("expected size %zu, got %zu", size, serialized_size);
+        cmocka_fail_msg("expected size %zu, got %zu", size, serialized_size);
     }
     // If we truncate the data by one byte, we should get a size of 0
     assert_int_equal(roaring_bitmap_portable_deserialize_size(data, size - 1),
@@ -144,7 +145,7 @@ static void invalid_deserialize_test(const void* vdata, size_t size,
         roaring_bitmap_portable_deserialize_safe(data, size);
     if (bitmap != NULL) {
         if (roaring_bitmap_internal_validate(bitmap, NULL)) {
-            fail_msg("Validation must fail if a bitmap was returned, %s",
+            cmocka_fail_msg("Validation must fail if a bitmap was returned, %s",
                      description);
         }
         roaring_bitmap_free(bitmap);
@@ -160,7 +161,7 @@ static void valid_deserialize_test(const void* vdata, size_t size) {
     size_t serialized_size =
         roaring_bitmap_portable_deserialize_size(data, size);
     if (serialized_size != size) {
-        fail_msg("expected size %zu, got %zu", size, serialized_size);
+        cmocka_fail_msg("expected size %zu, got %zu", size, serialized_size);
     }
     // If we truncate the data by one byte, we should get a size of 0
     assert_int_equal(roaring_bitmap_portable_deserialize_size(data, size - 1),

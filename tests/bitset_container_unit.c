@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/bitset_util.h>
 #include <roaring/containers/bitset.h>
 #include <roaring/misc/configreport.h>
@@ -14,8 +16,6 @@
 #ifdef __cplusplus  // stronger type checking errors if C built in C++ mode
 using namespace roaring::internal;
 #endif
-
-#include "test.h"
 
 DEFINE_TEST(hamming_test) {
     assert_true(roaring_hamming(0xffffffffffffffffULL) == 64);

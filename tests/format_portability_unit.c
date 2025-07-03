@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>
 
@@ -16,7 +18,6 @@ using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
 #include "config.h"
-#include "test.h"
 
 static inline long filesize(char const* path) {
     FILE* fp = fopen(path, "rb");

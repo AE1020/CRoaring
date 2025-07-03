@@ -5,6 +5,10 @@
 
 #include <assert.h>
 
+#include "../benchmarks/numbersfromtextfiles.h"
+#include "config.h"
+#include "test.h"
+
 #include <roaring/array_util.h>  // union_uint32(), intersection_uint32()
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>  // public api
@@ -13,10 +17,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "../benchmarks/numbersfromtextfiles.h"
-#include "config.h"
-#include "test.h"
 
 /**
  * Once you have collected all the integers, build the bitmaps.

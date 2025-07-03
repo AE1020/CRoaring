@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/bitset_util.h>
 #include <roaring/misc/configreport.h>
 
@@ -15,8 +17,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 DEFINE_TEST(setandextract_uint16) {
     const unsigned int bitset_size = 1 << 16;

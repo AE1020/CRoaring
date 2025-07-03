@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 
+#include "test.h"
+
 #include <roaring/art/art.h>
 #include <roaring/memory.h>
-
-#include "test.h"
 
 using namespace roaring::internal;
 
@@ -31,7 +31,7 @@ void assert_key_eq(const art_key_chunk_t* key1, const art_key_chunk_t* key2) {
             print_key(key2);
             printf("\n");
 
-            fail();
+            cmocka_fail();
         }
     }
 }
@@ -39,7 +39,7 @@ void assert_key_eq(const art_key_chunk_t* key1, const art_key_chunk_t* key2) {
 void assert_art_valid(art_t* art) {
     const char* reason = nullptr;
     if (!art_internal_validate(art, &reason, nullptr, nullptr)) {
-        fail_msg("ART is invalid: '%s'\n", reason);
+        cmocka_fail_msg("ART is invalid: '%s'\n", reason);
     }
 }
 

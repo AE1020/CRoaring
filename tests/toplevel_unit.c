@@ -4,6 +4,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>
 
@@ -15,8 +17,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 static unsigned int seed = 123456789;
 static const int OUR_RAND_MAX = (1 << 30) - 1;

@@ -41,7 +41,7 @@ int main() {
 
     // we can also go in reverse and go from arrays to bitmaps
     uint64_t card1 = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    uint32_t *arr1 = typed_malloc_n(uint32_t, card1);
     assert_true(arr1 != NULL);
     roaring_bitmap_to_uint32_array(r1, arr1);
     roaring_bitmap_t *r1f = roaring_bitmap_of_ptr(card1, arr1);
@@ -52,7 +52,7 @@ int main() {
     // we can go from arrays to bitmaps from "offset" by "limit"
     size_t offset = 100;
     size_t limit = 1000;
-    uint32_t *arr3 = (uint32_t *)malloc(limit * sizeof(uint32_t));
+    uint32_t *arr3 = typed_malloc_n(uint32_t, limit);
     assert_true(arr3 != NULL);
     roaring_bitmap_range_uint32_array(r1, offset, limit, arr3);
     free(arr3);
@@ -86,7 +86,7 @@ int main() {
 
     // we can write a bitmap to a pointer and recover it later
     uint32_t expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    char *serializedbytes = (char *)malloc(expectedsize);
+    char *serializedbytes = typed_malloc_n(char, expectedsize);
     roaring_bitmap_portable_serialize(r1, serializedbytes);
     roaring_bitmap_t *t =
         roaring_bitmap_portable_deserialize_safe(serializedbytes, expectedsize);

@@ -9,7 +9,16 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <stdio.h>
+
+// Typed test-only allocation helpers, used so test code can build cleanly
+// as C++ without explicit casts.  Can be used with regular free().
+
+#define typed_malloc(T) (T *)malloc(sizeof(T))
+#define typed_malloc_n(T, n) (T *)malloc(sizeof(T) * (n))
+#define typed_calloc(T) typed_calloc_n(T, 1)
+#define typed_calloc_n(T, n) (T *)calloc((n), sizeof(T))
 
 #ifdef __cplusplus
 //

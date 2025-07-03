@@ -276,7 +276,7 @@ DEFINE_TEST(to_uint32_array_test) {
 
         int card = bitset_container_cardinality(B);
 
-        uint32_t* out = (uint32_t*)malloc(sizeof(uint32_t) * card);
+        uint32_t* out = typed_malloc_n(uint32_t, card);
         assert_non_null(out);
 
         int nc = bitset_container_to_uint32_array(out, B, 0);

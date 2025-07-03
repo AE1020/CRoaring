@@ -26,7 +26,7 @@
 extern "C" {
 namespace roaring {
 namespace misc {
-#endif /* __cplusplus */
+#endif
 
 #if CROARING_IS_X64
 // useful for basic info (0)

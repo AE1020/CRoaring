@@ -135,7 +135,7 @@ static uint32_t **read_all_integer_files(char *dirname, char *extension,
 static roaring_bitmap_t **create_all_bitmaps(size_t *howmany,
                                              uint32_t **numbers, size_t count) {
     if (numbers == NULL) return NULL;
-    roaring_bitmap_t **answer = malloc(sizeof(roaring_bitmap_t *) * count);
+    roaring_bitmap_t **answer = typed_malloc_n(roaring_bitmap_t*, count);
     for (size_t i = 0; i < count; i++) {
         answer[i] = roaring_bitmap_of_ptr(howmany[i], numbers[i]);
     }

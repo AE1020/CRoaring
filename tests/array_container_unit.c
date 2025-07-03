@@ -143,7 +143,7 @@ DEFINE_TEST(to_uint32_array_test) {
         }
 
         int card = array_container_cardinality(B);
-        uint32_t* out = (uint32_t*)malloc(sizeof(uint32_t) * card);
+        uint32_t* out = typed_malloc_n(uint32_t, card);
         assert_non_null(out);
         int nc = array_container_to_uint32_array(out, B, 0);
 
@@ -229,9 +229,9 @@ size_t populate(uint16_t* buffer, size_t maxsize) {
 
 DEFINE_TEST(mini_fuzz_array_container_intersection_inplace) {
     splitmix64_seed(12345);
-    uint16_t* buffer1 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
-    uint16_t* buffer2 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
-    uint16_t* buffer3 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
+    uint16_t* buffer1 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
+    uint16_t* buffer2 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
+    uint16_t* buffer3 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
     for (size_t z = 0; z < 3000; z++) {
         array_container_t* array1 = array_container_create();
         array_container_t* array2 = array_container_create();
@@ -294,9 +294,9 @@ DEFINE_TEST(mini_fuzz_array_container_intersection_inplace) {
 
 DEFINE_TEST(mini_fuzz_recycle_array_container_intersection_inplace) {
     splitmix64_seed(12345);
-    uint16_t* buffer1 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
-    uint16_t* buffer2 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
-    uint16_t* buffer3 = (uint16_t*)malloc(DEFAULT_MAX_SIZE * sizeof(uint16_t));
+    uint16_t* buffer1 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
+    uint16_t* buffer2 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
+    uint16_t* buffer3 = typed_malloc_n(uint16_t, DEFAULT_MAX_SIZE);
     array_container_t* array1 = array_container_create();
     array_container_t* array2 = array_container_create();
     array_container_t* array3 = array_container_create();

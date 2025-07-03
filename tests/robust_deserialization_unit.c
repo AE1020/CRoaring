@@ -23,7 +23,7 @@ long filesize(FILE* fp) {
 
 char* readfile(FILE* fp, size_t* bytes) {
     *bytes = filesize(fp);
-    char* buf = (char*)malloc(*bytes);
+    char* buf = typed_malloc_n(char, *bytes);
     if (buf == NULL) return NULL;
 
     rewind(fp);
@@ -73,7 +73,7 @@ int test_deserialize(const char* filename) {
 
     size_t expected_size = roaring_bitmap_portable_size_in_bytes(bitmap);
 
-    char* output_buffer = (char*)malloc(expected_size);
+    char* output_buffer = typed_malloc_n(char, expected_size);
     size_t actual_size =
         roaring_bitmap_portable_serialize(bitmap, output_buffer);
 
@@ -123,8 +123,10 @@ DEFINE_TEST(test_robust_deserialize7) {
     test_deserialize(TEST_DATA_DIR "crashproneinput7.bin");
 }
 
-static void invalid_deserialize_test(const void* data, size_t size,
+static void invalid_deserialize_test(const void* vdata, size_t size,
                                      const char* description) {
+    const char* data = (const char*)vdata;
+
     // Ensure that the data _looks_ like a valid bitmap, but is not.
     size_t serialized_size =
         roaring_bitmap_portable_deserialize_size(data, size);
@@ -148,7 +150,8 @@ static void invalid_deserialize_test(const void* data, size_t size,
     assert_null(bitmap);
 }
 
-static void valid_deserialize_test(const void* data, size_t size) {
+static void valid_deserialize_test(const void* vdata, size_t size) {
+    const char* data = (const char*)vdata;
     // Ensure that the data _looks_ like a valid bitmap, but is not.
     size_t serialized_size =
         roaring_bitmap_portable_deserialize_size(data, size);

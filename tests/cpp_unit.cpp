@@ -146,7 +146,7 @@ void test_example(bool copy_on_write) {
 
     // we can write a bitmap to a pointer and recover it later
     size_t expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    char *serializedbytes = (char *)malloc(expectedsize);
+    char *serializedbytes = typed_malloc_n(char, expectedsize);
     roaring_bitmap_portable_serialize(r1, serializedbytes);
     roaring_bitmap_t *t = roaring_bitmap_portable_deserialize(serializedbytes);
     assert_true(expectedsize == roaring_bitmap_portable_size_in_bytes(t));
@@ -1651,7 +1651,7 @@ DEFINE_TEST(test_cpp_frozen_portable) {
 
     // allocate a buffer and serialize to it
     size_t num_bytes = r1.getSizeInBytes(true);
-    char *buf = (char *)malloc(num_bytes);
+    char *buf = typed_malloc_n(char, num_bytes);
     r1.write(buf, true);
 
     // ensure the frozen bitmap is the same as the original
@@ -1666,7 +1666,7 @@ DEFINE_TEST(test_cpp_frozen_portable) {
 
         // allocate a buffer and serialize to it
         size_t num_bytes1 = r.getSizeInBytes(true);
-        char *buf1 = (char *)malloc(num_bytes1);
+        char *buf1 = typed_malloc_n(char, num_bytes1);
         r.write(buf1, true);
 
         // ensure the frozen bitmap is the same as the original
@@ -1736,7 +1736,7 @@ DEFINE_TEST(test_cpp_frozen_64_portable) {
     r1.runOptimize();
 
     size_t num_bytes = r1.getSizeInBytes(true);
-    char *buf = (char *)malloc(num_bytes);
+    char *buf = typed_malloc_n(char, num_bytes);
     r1.write(buf, true);
 
     const Roaring64Map r2 = Roaring64Map::portableDeserializeFrozen(buf);

@@ -30,7 +30,7 @@ static inline char* readfile(char const* path) {
     assert_int_not_equal(fseek(fp, 0L, SEEK_END), -1);
 
     long bytes = ftell(fp);
-    char* buf = (char*)malloc(bytes);
+    char* buf = typed_malloc_n(char, bytes);
     assert_non_null(buf);
 
     rewind(fp);
@@ -61,7 +61,7 @@ static inline void test_deserialize(char* filename) {
 
     assert_int_equal(expected_size, filesize(filename));
 
-    char* output_buffer = (char*)malloc(expected_size);
+    char* output_buffer = typed_malloc_n(char, expected_size);
     size_t actual_size =
         roaring_bitmap_portable_serialize(bitmap, output_buffer);
 

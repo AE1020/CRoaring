@@ -101,7 +101,7 @@ DEFINE_TEST(issue433) {
     roaring_bitmap_add_range_closed(b1, 258047, 262143);
     roaring_bitmap_remove_range_closed(b1, 262143, 262143);
     size_t len = roaring_bitmap_portable_size_in_bytes(b1);
-    char *data = roaring_malloc(len);
+    char *data = typed_malloc_n(char, len);
     roaring_bitmap_portable_serialize(b1, data);
     roaring_bitmap_t *b2 = roaring_bitmap_portable_deserialize_safe(data, len);
     assert_true(roaring_bitmap_equals(b1, b2));
@@ -119,7 +119,7 @@ DEFINE_TEST(issue436) {
     roaring_bitmap_printf_describe(b1);
     roaring_bitmap_remove_range_closed(b1, 6143, 65505);
     size_t len = roaring_bitmap_portable_size_in_bytes(b1);
-    char *data = roaring_malloc(len);
+    char *data = typed_malloc_n(char, len);
     roaring_bitmap_portable_serialize(b1, data);
     roaring_bitmap_t *b2 = roaring_bitmap_portable_deserialize_safe(data, len);
     assert_true(roaring_bitmap_equals(b1, b2));
@@ -301,7 +301,7 @@ void can_copy_empty(bool copy_on_write) {
 
 bool check_serialization(roaring_bitmap_t *bitmap) {
     const size_t size = roaring_bitmap_portable_size_in_bytes(bitmap);
-    char *data = (char *)malloc(size);
+    char *data = typed_malloc_n(char, size);
     roaring_bitmap_portable_serialize(bitmap, data);
     roaring_bitmap_t *deserializedBitmap =
         roaring_bitmap_portable_deserialize(data);
@@ -453,10 +453,10 @@ struct sbs_s {
 typedef struct sbs_s sbs_t;
 
 sbs_t *sbs_create(void) {
-    sbs_t *sbs = (sbs_t *)malloc(sizeof(sbs_t));
+    sbs_t *sbs = typed_malloc(sbs_t);
     sbs->roaring = roaring_bitmap_create();
     sbs->size = 1;
-    sbs->words = (uint64_t *)malloc(sbs->size * sizeof(uint64_t));
+    sbs->words = typed_malloc_n(uint64_t, sbs->size);
     for (uint32_t i = 0; i < sbs->size; i++) {
         sbs->words[i] = 0;
     }
@@ -543,7 +543,7 @@ void sbs_compare(sbs_t *sbs) {
         }
     }
     uint32_t *expected_values =
-        (uint32_t *)malloc(expected_cardinality * sizeof(uint32_t));
+        typed_malloc_n(uint32_t, expected_cardinality);
     memset(expected_values, 0, expected_cardinality * sizeof(uint32_t));
     for (uint32_t i = 0, dst = 0; i < sbs->size; i++) {
         for (uint32_t j = 0; j < 64; j++) {
@@ -555,7 +555,7 @@ void sbs_compare(sbs_t *sbs) {
 
     uint32_t actual_cardinality = roaring_bitmap_get_cardinality(sbs->roaring);
     uint32_t *actual_values =
-        (uint32_t *)malloc(actual_cardinality * sizeof(uint32_t));
+        typed_malloc_n(uint32_t, actual_cardinality);
     memset(actual_values, 0, actual_cardinality * sizeof(uint32_t));
     roaring_bitmap_to_uint32_array(sbs->roaring, actual_values);
 
@@ -742,7 +742,7 @@ void test_stress_memory(bool copy_on_write) {
         }
         roaring_bitmap_run_optimize(r1);
         uint32_t compact_size = roaring_bitmap_portable_size_in_bytes(r1);
-        char *serializedbytes = (char *)malloc(compact_size);
+        char *serializedbytes = typed_malloc_n(char, compact_size);
         size_t actualsize =
             roaring_bitmap_portable_serialize(r1, serializedbytes);
         assert_int_equal(actualsize, compact_size);
@@ -804,14 +804,14 @@ void test_example(bool copy_on_write) {
 
     // we can also go in reverse and go from arrays to bitmaps
     uint64_t card1 = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    uint32_t *arr1 = typed_malloc_n(uint32_t, card1);
     assert_true(arr1 != NULL);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     // we can go from arrays to bitmaps from "offset" by "limit"
     size_t offset = 100;
     size_t limit = 1000;
-    uint32_t *arr3 = (uint32_t *)malloc(limit * sizeof(uint32_t));
+    uint32_t *arr3 = typed_malloc_n(uint32_t, limit);
     assert_true(arr3 != NULL);
     roaring_bitmap_range_uint32_array(r1, offset, limit, arr3);
     for (size_t i = 0; i < card1 - offset; ++i) {
@@ -883,7 +883,7 @@ void test_example(bool copy_on_write) {
 
     // we can write a bitmap to a pointer and recover it later
     uint32_t expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    char *serializedbytes = (char *)malloc(expectedsize);
+    char *serializedbytes = typed_malloc_n(char, expectedsize);
     size_t actualsize = roaring_bitmap_portable_serialize(r1, serializedbytes);
     assert_int_equal(actualsize, expectedsize);
     roaring_bitmap_t *t = roaring_bitmap_portable_deserialize(serializedbytes);
@@ -1210,7 +1210,7 @@ DEFINE_TEST(test_adversarial_range) {
 DEFINE_TEST(test_range_and_serialize) {
     roaring_bitmap_t *old_bm = roaring_bitmap_from_range(65520, 131057, 16);
     size_t size = roaring_bitmap_portable_size_in_bytes(old_bm);
-    char *buff = (char *)malloc(size);
+    char *buff = typed_malloc_n(char, size);
     size_t actualsize = roaring_bitmap_portable_serialize(old_bm, buff);
     assert_int_equal(actualsize, size);
     roaring_bitmap_t *new_bm = roaring_bitmap_portable_deserialize(buff);
@@ -1377,7 +1377,7 @@ DEFINE_TEST(test_portable_serialize) {
         roaring_bitmap_add(r1, 3 * i);
 
     uint32_t expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    char *serialized = (char *)malloc(expectedsize);
+    char *serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
     assert_int_equal(serialize_len, expectedsize);
@@ -1385,11 +1385,11 @@ DEFINE_TEST(test_portable_serialize) {
     assert_non_null(r2);
 
     uint64_t card1 = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    uint32_t *arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     uint64_t card2 = roaring_bitmap_get_cardinality(r2);
-    uint32_t *arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    uint32_t *arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -1403,7 +1403,7 @@ DEFINE_TEST(test_portable_serialize) {
     r1 = roaring_bitmap_from(2946000, 2997491, 10478289, 10490227, 10502444,
                              19866827);
     expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    serialized = (char *)malloc(expectedsize);
+    serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
     assert_int_equal(serialize_len, expectedsize);
@@ -1412,11 +1412,11 @@ DEFINE_TEST(test_portable_serialize) {
     assert_non_null(r2);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -1436,7 +1436,7 @@ DEFINE_TEST(test_portable_serialize) {
 
     roaring_bitmap_run_optimize(r1);
     expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    serialized = (char *)malloc(expectedsize);
+    serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
 
@@ -1444,11 +1444,11 @@ DEFINE_TEST(test_portable_serialize) {
     assert_non_null(r2);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -1472,18 +1472,18 @@ DEFINE_TEST(test_serialize) {
     /* Add some values to the bitmap */
     for (int i = 0, top_val = 384000; i < top_val; i++)
         roaring_bitmap_add(r1, 3 * i);
-    serialized = (char *)malloc(roaring_bitmap_size_in_bytes(r1));
+    serialized = typed_malloc_n(char, roaring_bitmap_size_in_bytes(r1));
     serialize_len = roaring_bitmap_serialize(r1, serialized);
     assert_int_equal(serialize_len, roaring_bitmap_size_in_bytes(r1));
     r2 = roaring_bitmap_deserialize(serialized);
     assert_non_null(r2);
 
     uint64_t card1 = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    uint32_t *arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     uint64_t card2 = roaring_bitmap_get_cardinality(r2);
-    uint32_t *arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    uint32_t *arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -1503,7 +1503,7 @@ DEFINE_TEST(test_serialize) {
     ra_append(&r1->high_low_container, 0, run, RUN_CONTAINER_TYPE);
 
     serialize_len = roaring_bitmap_size_in_bytes(r1);
-    serialized = (char *)malloc(serialize_len);
+    serialized = typed_malloc_n(char, serialize_len);
     assert_int_equal((int32_t)serialize_len,
                      roaring_bitmap_serialize(r1, serialized));
     r2 = roaring_bitmap_deserialize(serialized);
@@ -1534,19 +1534,19 @@ DEFINE_TEST(test_serialize) {
     r1 = roaring_bitmap_from(2946000, 2997491, 10478289, 10490227, 10502444,
                              19866827);
 
-    serialized = (char *)malloc(roaring_bitmap_size_in_bytes(r1));
+    serialized = typed_malloc_n(char, roaring_bitmap_size_in_bytes(r1));
     serialize_len = roaring_bitmap_serialize(r1, serialized);
     assert_int_equal(serialize_len, roaring_bitmap_size_in_bytes(r1));
     r2 = roaring_bitmap_deserialize(serialized);
     assert_non_null(r2);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     assert_non_null(arr1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     assert_non_null(arr2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
@@ -1563,18 +1563,18 @@ DEFINE_TEST(test_serialize) {
         roaring_bitmap_add(r1, k);
     }
     roaring_bitmap_run_optimize(r1);
-    serialized = (char *)malloc(roaring_bitmap_size_in_bytes(r1));
+    serialized = typed_malloc_n(char, roaring_bitmap_size_in_bytes(r1));
     serialize_len = roaring_bitmap_serialize(r1, serialized);
     assert_int_equal(serialize_len, roaring_bitmap_size_in_bytes(r1));
     r2 = roaring_bitmap_deserialize(serialized);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     assert_non_null(arr1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     assert_non_null(arr2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
@@ -1590,7 +1590,7 @@ DEFINE_TEST(test_serialize) {
     /* ******* */
     roaring_bitmap_t *old_bm = roaring_bitmap_create();
     for (unsigned i = 0; i < 102; i++) roaring_bitmap_add(old_bm, i);
-    char *buff = (char *)malloc(roaring_bitmap_size_in_bytes(old_bm));
+    char *buff = typed_malloc_n(char, roaring_bitmap_size_in_bytes(old_bm));
     uint32_t size = roaring_bitmap_serialize(old_bm, buff);
     assert_int_equal(size, roaring_bitmap_size_in_bytes(old_bm));
     roaring_bitmap_t *new_bm = roaring_bitmap_deserialize(buff);
@@ -1671,7 +1671,7 @@ DEFINE_TEST(test_contains) {
 }
 
 DEFINE_TEST(test_contains_range) {
-    uint32_t *values = (uint32_t *)malloc(100000 * sizeof(uint32_t));
+    uint32_t *values = typed_malloc_n(uint32_t, 100000);
     assert_non_null(values);
     for (uint32_t length_range = 1; length_range <= 64; ++length_range) {
         roaring_bitmap_t *r1 = roaring_bitmap_create();
@@ -2678,7 +2678,7 @@ static roaring_bitmap_t *make_roaring_from_array(uint32_t *a, int len) {
 
 DEFINE_TEST(test_conversion_to_int_array) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // a dense bitmap container  (best done with runs)
     for (uint32_t i = 0; i < 50000; ++i) {
@@ -2703,7 +2703,7 @@ DEFINE_TEST(test_conversion_to_int_array) {
     roaring_bitmap_t *r1 = make_roaring_from_array(ans, ans_ctr);
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2715,7 +2715,7 @@ DEFINE_TEST(test_conversion_to_int_array) {
 DEFINE_TEST(test_conversion_to_int_array_with_runoptimize) {
     roaring_bitmap_t *r1 = roaring_bitmap_create();
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // a dense bitmap container  (best done with runs)
     for (uint32_t i = 0; i < 50000; ++i) {
@@ -2742,7 +2742,7 @@ DEFINE_TEST(test_conversion_to_int_array_with_runoptimize) {
     assert_true(roaring_bitmap_run_optimize(r1));
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2753,7 +2753,7 @@ DEFINE_TEST(test_conversion_to_int_array_with_runoptimize) {
 
 DEFINE_TEST(test_array_to_run) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // array container  (best done with runs)
     for (uint32_t i = 0; i < 500; ++i) {
@@ -2766,7 +2766,7 @@ DEFINE_TEST(test_array_to_run) {
     assert_true(roaring_bitmap_run_optimize(r1));
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2778,7 +2778,7 @@ DEFINE_TEST(test_array_to_run) {
 DEFINE_TEST(test_array_to_self) {
     int ans_ctr = 0;
 
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // array container  (best not done with runs)
     for (uint32_t i = 0; i < 500; i += 2) {
@@ -2791,7 +2791,7 @@ DEFINE_TEST(test_array_to_self) {
     assert_false(roaring_bitmap_run_optimize(r1));
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2802,7 +2802,7 @@ DEFINE_TEST(test_array_to_self) {
 
 DEFINE_TEST(test_bitset_to_self) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // bitset container  (best not done with runs)
     for (uint32_t i = 0; i < 50000; i += 2) {
@@ -2815,7 +2815,7 @@ DEFINE_TEST(test_bitset_to_self) {
     assert_false(roaring_bitmap_run_optimize(r1));
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2826,7 +2826,7 @@ DEFINE_TEST(test_bitset_to_self) {
 
 DEFINE_TEST(test_bitset_to_run) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // bitset container  (best done with runs)
     for (uint32_t i = 0; i < 50000; i++) {
@@ -2839,7 +2839,7 @@ DEFINE_TEST(test_bitset_to_run) {
     assert_true(roaring_bitmap_run_optimize(r1));
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2852,7 +2852,7 @@ DEFINE_TEST(test_bitset_to_run) {
 
 DEFINE_TEST(test_run_to_self) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // bitset container  (best done with runs)
     for (uint32_t i = 0; i < 50000; i++) {
@@ -2867,7 +2867,7 @@ DEFINE_TEST(test_run_to_self) {
     assert_true(b);  // still true there is a runcontainer
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2878,7 +2878,7 @@ DEFINE_TEST(test_run_to_self) {
 
 DEFINE_TEST(test_remove_run_to_bitset) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // bitset container  (best done with runs)
     for (uint32_t i = 0; i < 50000; i++) {
@@ -2894,7 +2894,7 @@ DEFINE_TEST(test_remove_run_to_bitset) {
         roaring_bitmap_run_optimize(r1));  // there is again a run container
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2905,7 +2905,7 @@ DEFINE_TEST(test_remove_run_to_bitset) {
 
 DEFINE_TEST(test_remove_run_to_array) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // array  (best done with runs)
     for (uint32_t i = 0; i < 500; i++) {
@@ -2921,7 +2921,7 @@ DEFINE_TEST(test_remove_run_to_array) {
         roaring_bitmap_run_optimize(r1));  // there is again a run container
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2932,7 +2932,7 @@ DEFINE_TEST(test_remove_run_to_array) {
 
 DEFINE_TEST(test_remove_run_to_bitset_cow) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // bitset container  (best done with runs)
     for (uint32_t i = 0; i < 50000; i++) {
@@ -2951,7 +2951,7 @@ DEFINE_TEST(test_remove_run_to_bitset_cow) {
         roaring_bitmap_run_optimize(r1));  // there is again a run container
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -2963,7 +2963,7 @@ DEFINE_TEST(test_remove_run_to_bitset_cow) {
 
 DEFINE_TEST(test_remove_run_to_array_cow) {
     int ans_ctr = 0;
-    uint32_t *ans = (uint32_t *)calloc(100000, sizeof(int32_t));
+    uint32_t *ans = typed_calloc_n(uint32_t, 100000);
 
     // array  (best done with runs)
     for (uint32_t i = 0; i < 500; i++) {
@@ -2982,7 +2982,7 @@ DEFINE_TEST(test_remove_run_to_array_cow) {
         roaring_bitmap_run_optimize(r1));  // there is again a run container
 
     uint64_t card = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr = (uint32_t *)malloc(card * sizeof(uint32_t));
+    uint32_t *arr = typed_malloc_n(uint32_t, card);
     roaring_bitmap_to_uint32_array(r1, arr);
 
     assert_true(array_equals(arr, (int)card, ans, ans_ctr));
@@ -3406,8 +3406,8 @@ DEFINE_TEST(test_rand_flips) {
     const int min_runs = 1;
     const int flip_trials = 5;  // these are expensive tests
     const int range = 2000000;
-    char *input = (char *)malloc(range);
-    char *output = (char *)malloc(range);
+    char *input = typed_malloc_n(char, range);
+    char *output = typed_malloc_n(char, range);
 
     for (int card = 2; card < 1000000; card *= 8) {
         printf("test_rand_flips with attempted card %d", card);
@@ -3463,8 +3463,8 @@ DEFINE_TEST(test_inplace_rand_flips) {
     const int min_runs = 1;
     const int flip_trials = 5;  // these are expensive tests
     const int range = 2000000;
-    char *input = (char *)malloc(range);
-    char *output = (char *)malloc(range);
+    char *input = typed_malloc_n(char, range);
+    char *output = typed_malloc_n(char, range);
 
     for (int card = 2; card < 1000000; card *= 8) {
         roaring_bitmap_t *r = roaring_bitmap_create();
@@ -3549,7 +3549,7 @@ DEFINE_TEST(test_flip_run_container_removal2) {
 DEFINE_TEST(select_test) {
     const int min_runs = 1;
     const uint32_t range = 2000000;
-    char *input = (char *)malloc(range);
+    char *input = typed_malloc_n(char, range);
 
     for (int card = 2; card < 1000000; card *= 8) {
         roaring_bitmap_t *r = roaring_bitmap_create();
@@ -3659,7 +3659,7 @@ DEFINE_TEST(test_rank) {
             roaring_bitmap_add(r, x);
         }
         uint64_t card = roaring_bitmap_get_cardinality(r);
-        uint32_t *ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        uint32_t *ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 1000 + mymin + 10; z += 10) {
             uint64_t truerank = rank(ans, card, z);
@@ -3686,7 +3686,7 @@ DEFINE_TEST(test_rank) {
             roaring_bitmap_add(r, x);
         }
         card = roaring_bitmap_get_cardinality(r);
-        ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 64000 + mymin + 10; z += 10) {
             uint64_t truerank = rank(ans, card, z);
@@ -3714,7 +3714,7 @@ DEFINE_TEST(test_rank) {
         }
         roaring_bitmap_run_optimize(r);
         card = roaring_bitmap_get_cardinality(r);
-        ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 64000 + mymin + 10; z += 10) {
             uint64_t truerank = rank(ans, card, z);
@@ -3749,7 +3749,7 @@ DEFINE_TEST(test_get_index) {
             roaring_bitmap_add(r, x);
         }
         uint64_t card = roaring_bitmap_get_cardinality(r);
-        uint32_t *ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        uint32_t *ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 1000 + mymin + 10; z += 10) {
             int64_t trueidx = get_index(ans, card, z);
@@ -3765,7 +3765,7 @@ DEFINE_TEST(test_get_index) {
             roaring_bitmap_add(r, x);
         }
         card = roaring_bitmap_get_cardinality(r);
-        ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 64000 + mymin + 10; z += 10) {
             int64_t trueidx = get_index(ans, card, z);
@@ -3782,7 +3782,7 @@ DEFINE_TEST(test_get_index) {
         }
         roaring_bitmap_run_optimize(r);
         card = roaring_bitmap_get_cardinality(r);
-        ans = (uint32_t *)malloc(card * sizeof(uint32_t));
+        ans = typed_malloc_n(uint32_t, card);
         roaring_bitmap_to_uint32_array(r, ans);
         for (uint32_t z = 0; z < 64000 + mymin + 10; z += 10) {
             int64_t trueidx = get_index(ans, card, z);
@@ -3893,7 +3893,7 @@ DEFINE_TEST(test_or_many_memory_leak) {
 void test_iterator_generate_data(uint32_t **values_out, uint32_t *count_out) {
     const size_t capacity = 1000 * 1000;
     uint32_t *values =
-        (uint32_t *)malloc(sizeof(uint32_t) * capacity);  // ascending order
+        typed_malloc_n(uint32_t, capacity);  // ascending order
     uint32_t count = 0;
     uint32_t base = 1234;  // container index
 
@@ -3978,8 +3978,7 @@ void test_iterator_generate_data(uint32_t **values_out, uint32_t *count_out) {
 void read_compare(roaring_bitmap_t *r, const uint32_t *ref_values,
                   uint32_t ref_count, uint32_t step) {
     roaring_uint32_iterator_t *iter = roaring_iterator_create(r);
-    uint32_t *buffer = (uint32_t *)malloc(sizeof(uint32_t) *
-                                          (step == UINT32_MAX ? 65536 : step));
+    uint32_t *buffer = typed_malloc_n(uint32_t, (step == UINT32_MAX ? 65536 : step));
     while (ref_count > 0) {
         assert_true(iter->has_value == true);
         assert_true(iter->current_value == ref_values[0]);
@@ -4071,7 +4070,7 @@ void read_backward_compare(roaring_bitmap_t *r, const uint32_t *ref_values,
     roaring_uint32_iterator_t *iter = roaring_iterator_create(r);
     roaring_iterator_init_last(r, iter);
     uint32_t *buffer =
-        malloc(sizeof(uint32_t) * (step == UINT32_MAX ? 65536 : step));
+        typed_malloc_n(uint32_t, (step == UINT32_MAX) ? 65536 : step);
     uint32_t remaining = ref_count;
     while (remaining > 0) {
         assert_true(iter->has_value == true);
@@ -4453,8 +4452,7 @@ DEFINE_TEST(test_uint32_iterator_skip_backward_native) {
 static roaring_uint32_range_closed_t *ranges_from_values(
     const uint32_t *values, size_t count, uint32_t *num_ranges_out) {
     roaring_uint32_range_closed_t *ranges =
-        (roaring_uint32_range_closed_t *)malloc(
-            sizeof(roaring_uint32_range_closed_t) * (count + 1));
+        typed_malloc_n(roaring_uint32_range_closed_t, (count + 1));
     uint32_t num_ranges = 0;
     for (uint32_t i = 0; i < count; i++) {
         if (i == 0 || values[i] != values[i - 1] + 1) {
@@ -4477,8 +4475,7 @@ static void ranges_read_compare(roaring_bitmap_t *r,
                                 uint32_t num_ranges, uint32_t step) {
     roaring_uint32_iterator_t *iter = roaring_iterator_create(r);
     roaring_uint32_range_closed_t *buffer =
-        (roaring_uint32_range_closed_t *)malloc(
-            sizeof(roaring_uint32_range_closed_t) * step);
+        typed_malloc_n(roaring_uint32_range_closed_t, step);
     uint32_t ranges_read = 0;
     while (ranges_read < num_ranges) {
         assert_true(iter->has_value);
@@ -4512,8 +4509,7 @@ static void ranges_read_prev_compare(
     roaring_uint32_iterator_t iter;
     roaring_iterator_init_last(r, &iter);
     roaring_uint32_range_closed_t *buffer =
-        (roaring_uint32_range_closed_t *)malloc(
-            sizeof(roaring_uint32_range_closed_t) * step);
+        typed_malloc_n(roaring_uint32_range_closed_t, step);
     uint32_t ranges_read = 0;
     while (ranges_read < num_ranges) {
         assert_true(iter.has_value);
@@ -5246,18 +5242,18 @@ DEFINE_TEST(test_portable_deserialize_frozen) {
         roaring_bitmap_add(r1, 3 * i);
 
     uint32_t expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    char *serialized = (char *)malloc(expectedsize);
+    char *serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
     r2 = roaring_bitmap_portable_deserialize_frozen(serialized);
     assert_non_null(r2);
 
     uint64_t card1 = roaring_bitmap_get_cardinality(r1);
-    uint32_t *arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    uint32_t *arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     uint64_t card2 = roaring_bitmap_get_cardinality(r2);
-    uint32_t *arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    uint32_t *arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -5271,7 +5267,7 @@ DEFINE_TEST(test_portable_deserialize_frozen) {
     r1 = roaring_bitmap_from(2946000, 2997491, 10478289, 10490227, 10502444,
                              19866827);
     expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    serialized = (char *)malloc(expectedsize);
+    serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
     assert_int_equal(serialize_len, expectedsize);
@@ -5280,11 +5276,11 @@ DEFINE_TEST(test_portable_deserialize_frozen) {
     assert_non_null(r2);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -5304,7 +5300,7 @@ DEFINE_TEST(test_portable_deserialize_frozen) {
 
     roaring_bitmap_run_optimize(r1);
     expectedsize = roaring_bitmap_portable_size_in_bytes(r1);
-    serialized = (char *)malloc(expectedsize);
+    serialized = typed_malloc_n(char, expectedsize);
     serialize_len = roaring_bitmap_portable_serialize(r1, serialized);
     assert_int_equal(serialize_len, expectedsize);
 
@@ -5312,11 +5308,11 @@ DEFINE_TEST(test_portable_deserialize_frozen) {
     assert_non_null(r2);
 
     card1 = roaring_bitmap_get_cardinality(r1);
-    arr1 = (uint32_t *)malloc(card1 * sizeof(uint32_t));
+    arr1 = typed_malloc_n(uint32_t, card1);
     roaring_bitmap_to_uint32_array(r1, arr1);
 
     card2 = roaring_bitmap_get_cardinality(r2);
-    arr2 = (uint32_t *)malloc(card2 * sizeof(uint32_t));
+    arr2 = typed_malloc_n(uint32_t, card2);
     roaring_bitmap_to_uint32_array(r2, arr2);
 
     assert_true(array_equals(arr1, card1, arr2, card2));
@@ -5410,7 +5406,7 @@ DEFINE_TEST(robust_deserialization) {
 DEFINE_TEST(fuzz_deserializer) {
     for (size_t i = 0; i < 10000; i++) {
         size_t vec_size = our_rand() % 10000;
-        char *buffer = malloc(vec_size);
+        char *buffer = typed_malloc_n(char, vec_size);
         for (size_t j = 0; j < vec_size; j++) {
             buffer[j] = our_rand() % 256;
         }
@@ -5421,7 +5417,7 @@ DEFINE_TEST(fuzz_deserializer) {
 
 DEFINE_TEST(issue538) {
     roaring_bitmap_t *dense = roaring_bitmap_create();
-    int *values = (int *)malloc(4500 * sizeof(int));
+    int *values = typed_malloc_n(int, 4500);
 
     // Make a bitmap with enough entries to need a bitset container
     for (int k = 0; k < 4500; ++k) {
@@ -5435,7 +5431,7 @@ DEFINE_TEST(issue538) {
     // Serialise and deserialise
     int buffer_size = roaring_bitmap_portable_size_in_bytes(dense_shift);
 
-    char *arr = (char *)malloc(buffer_size * sizeof(char));
+    char *arr = typed_malloc_n(char, buffer_size);
 
     roaring_bitmap_portable_serialize(dense_shift, arr);
 

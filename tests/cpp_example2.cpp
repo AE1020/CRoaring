@@ -1,7 +1,8 @@
 #include <iostream>
 
-#include "roaring/roaring.hh"
 #include "test.h"
+
+#include "roaring/roaring.hh"
 
 using namespace roaring;
 

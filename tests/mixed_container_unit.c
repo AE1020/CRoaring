@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/containers/containers.h>
 #include <roaring/containers/mixed_andnot.h>
 #include <roaring/containers/mixed_intersection.h>
@@ -20,8 +22,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 // #define UNVERBOSE_MIXED_CONTAINER
 

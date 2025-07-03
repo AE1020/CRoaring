@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/containers/run.h>
 #include <roaring/misc/configreport.h>
 
@@ -14,8 +16,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 DEFINE_TEST(printf_test) {
     run_container_t* B = run_container_create();

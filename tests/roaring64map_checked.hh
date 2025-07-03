@@ -35,8 +35,6 @@
 #include <stdexcept>
 #include <string>
 
-#include "test.h"
-
 #define ROARING_CPP_NAMESPACE unchecked  // can't be overridden if global
 #include "roaring/roaring64map.hh"  // contains Roaring64Map unchecked class
 

@@ -41,8 +41,6 @@
 #include <stdexcept>
 #include <string>
 
-#include "test.h"
-
 #define ROARING_CPP_NAMESPACE unchecked  // can't be overridden if global
 #include "roaring/roaring.hh"            // contains Roaring unchecked class
 

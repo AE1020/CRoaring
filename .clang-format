@@ -1,10 +1,65 @@
 BasedOnStyle: Google
 IndentWidth: 4
+
+# Include ordering rules
+# ======================
+#
+# HOW THIS WORKS
+# --------------
+# clang-format matches each #include against the Regex entries top-to-bottom
+# and assigns it to the FIRST matching category.  More specific regexes must
+# therefore appear BEFORE more general ones, or they will never fire.
+#
+# The Priority number controls the OUTPUT ORDER: lower number = appears first
+# in the file.  Within a priority group, headers are sorted alphabetically.
+# IncludeBlocks: Regroup merges all include blocks in a translation unit into
+# one sorted block.
+#
+# Current output order (lowest Priority number first):
+#
+#   Priority 1  .*                       System / third-party angle-bracket
+#                                        headers: <limits.h>, <stdio.h>, etc.
+#
+#   Priority 2  ^"test\.h"$              "test.h" exactly.  Must precede
+#                                        roaring headers so that cmocka's
+#                                        high-value identifiers (skip, fail,
+#                                        …) are renamed to cmocka_skip,
+#                                        cmocka_fail, … before they can
+#                                        collide with roaring identifiers.
+#
+#   Priority 3  ^<roaring/roaring_types  <roaring/roaring_types.h> exactly.
+#                                        This header is a prerequisite for
+#                                        several other roaring headers
+#                                        (container_defs.h, bitset.h, …) and
+#                                        must appear before them.  Without this
+#                                        specific rule it would land inside the
+#                                        generic Priority-4 roaring group and
+#                                        sort alphabetically after headers
+#                                        whose paths begin with a–q.
+#
+#   Priority 4  ^<roaring/               All other <roaring/…> headers.
+#
+#   Priority 5  ^"                       Other project-local quoted headers.
+#
+# UPDATING THESE RULES
+# --------------------
+# * If a new roaring header X must be included before another roaring header
+#   Y (because Y depends on X), add a specific rule for X with a priority
+#   number lower than the generic Priority-4 roaring group and list it BEFORE
+#   the generic '^<roaring/' rule.
+#
+# * Keep specific regexes above the general ones they would otherwise match.
+#   e.g. '^"test\.h"$' must stay above '^"' or test.h gets priority 5.
+#
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<roaring/'
+  - Regex: '^"test\.h"$'
     Priority: 2
-  - Regex: '^"'
+  - Regex: '^<roaring/roaring_types\.h>$'
     Priority: 3
+  - Regex: '^<roaring/'
+    Priority: 4
+  - Regex: '^"'
+    Priority: 5
   - Regex: '.*'
     Priority: 1

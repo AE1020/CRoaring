@@ -2,15 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>
-
-#ifdef __cplusplus  // stronger type checking errors if C built in C++ mode
-using namespace roaring::api;
-using namespace roaring::configreport;
-#endif
-
-#include "test.h"
 
 #ifdef __cplusplus  // stronger type checking errors if C built in C++ mode
 using namespace roaring::api;

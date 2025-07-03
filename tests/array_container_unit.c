@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
 #include <roaring/containers/mixed_equal.h>
@@ -15,8 +17,6 @@
 #ifdef __cplusplus  // stronger type checking errors if C built in C++ mode
 using namespace roaring::internal;
 #endif
-
-#include "test.h"
 
 DEFINE_TEST(printf_test) {
     array_container_t* B = array_container_create();

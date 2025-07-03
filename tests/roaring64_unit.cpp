@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include <roaring/roaring64.h>
-
 #include "test.h"
+
+#include <roaring/roaring64.h>
 
 using namespace roaring::api;
 
@@ -49,14 +49,14 @@ void assert_vector_reversed(const std::vector<uint64_t>& lhs,
 void assert_r32_valid(const roaring_bitmap_t* b) {
     const char* reason = nullptr;
     if (!roaring_bitmap_internal_validate(b, &reason)) {
-        fail_msg("Roaring64 bitmap is invalid: '%s'\n", reason);
+        cmocka_fail_msg("Roaring64 bitmap is invalid: '%s'\n", reason);
     }
 }
 
 void assert_r64_valid(const roaring64_bitmap_t* b) {
     const char* reason = nullptr;
     if (!roaring64_bitmap_internal_validate(b, &reason)) {
-        fail_msg("Roaring64 bitmap is invalid: '%s'\n", reason);
+        cmocka_fail_msg("Roaring64 bitmap is invalid: '%s'\n", reason);
     }
 }
 

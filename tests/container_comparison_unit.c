@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "test.h"
+
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
 #include <roaring/containers/containers.h>
@@ -19,8 +21,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 static inline void container_checked_add(container_t *container, uint16_t val,
                                          uint8_t typecode) {

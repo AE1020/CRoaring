@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "test.h"
+
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>
 
@@ -14,8 +16,6 @@
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "test.h"
 
 #define ARRAY_SIZE(x) sizeof(x) / sizeof(*x)
 

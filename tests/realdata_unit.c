@@ -5,18 +5,19 @@
 
 #include <assert.h>
 
+#include "test.h"
+
 #include <roaring/array_util.h>  // union_uint32(), intersection_uint32()
 #include <roaring/misc/configreport.h>
 #include <roaring/roaring.h>  // public api
+
+#include "../benchmarks/numbersfromtextfiles.h"
+#include "config.h"
 
 #ifdef __cplusplus  // stronger type checking errors if C built in C++ mode
 using namespace roaring::internal;
 using namespace roaring::misc;
 #endif
-
-#include "../benchmarks/numbersfromtextfiles.h"
-#include "config.h"
-#include "test.h"
 
 /**
  * Once you have collected all the integers, build the bitmaps.

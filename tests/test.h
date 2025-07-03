@@ -33,14 +33,34 @@ extern "C" {
 #include <cmocka.h>
 #endif
 
+// Patch cmocka to not get the final say on high-value words that might be
+// useful in the code being tested (fail, skip, fail_msg...)
+//
+// (test.h should be included before the Roaring headers, otherwise there
+// would be errors of cmocka #define'ing fail over top of Roaring's fail())
+
+#undef fail
+#define cmocka_fail() _fail(__FILE__, __LINE__)
+
+#undef fail_msg
+#define cmocka_fail_msg(msg, ...)                       \
+    do {                                                \
+        print_error("ERROR: " msg "\n", ##__VA_ARGS__); \
+        cmocka_fail();                                  \
+    } while (0)
+
+#undef skip
+#define cmocka_skip() _skip(__FILE__, __LINE__)
+
 #define DESCRIBE_TEST fprintf(stderr, "--- %s\n", __func__)
 
-#define assert_bitmap_validate(b)                                            \
-    do {                                                                     \
-        const char *internal_reason_buf = NULL;                              \
-        if (!roaring_bitmap_internal_validate((b), &internal_reason_buf)) {  \
-            fail_msg("internal validation failed: %s", internal_reason_buf); \
-        }                                                                    \
+#define assert_bitmap_validate(b)                                           \
+    do {                                                                    \
+        const char *internal_reason_buf = NULL;                             \
+        if (!roaring_bitmap_internal_validate((b), &internal_reason_buf)) { \
+            cmocka_fail_msg("internal validation failed: %s",               \
+                            internal_reason_buf);                           \
+        }                                                                   \
     } while (0)
 
 // The "cmocka" test functions are supposed to look like:

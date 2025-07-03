@@ -30,12 +30,12 @@
 #include <type_traits>
 #include <vector>
 
+#include "test.h"
+
 #include "roaring_checked.hh"
 using doublechecked::Roaring;  // so `Roaring` means `doublechecked::Roaring`
 #include "roaring64map_checked.hh"
 using doublechecked::Roaring64Map;
-
-#include "test.h"
 
 // The tests can run as long as one wants.  Ideally, the sanitizer options
 // for `address` and `undefined behavior` should be enabled (see the CMake

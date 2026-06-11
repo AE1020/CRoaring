@@ -84,8 +84,7 @@ static inline container_t *containerptr_roaring_bitmap_add(roaring_bitmap_t *r,
 }
 
 roaring_bitmap_t *roaring_bitmap_create_with_capacity(uint32_t cap) {
-    roaring_bitmap_t *ans =
-        (roaring_bitmap_t *)roaring_malloc(sizeof(roaring_bitmap_t));
+    roaring_bitmap_t *ans = roaring_typed_malloc(roaring_bitmap_t);
     if (!ans) {
         return NULL;
     }
@@ -524,8 +523,7 @@ bool roaring_bitmap_internal_validate(const roaring_bitmap_t *r,
 }
 
 roaring_bitmap_t *roaring_bitmap_copy(const roaring_bitmap_t *r) {
-    roaring_bitmap_t *ans =
-        (roaring_bitmap_t *)roaring_malloc(sizeof(roaring_bitmap_t));
+    roaring_bitmap_t *ans = roaring_typed_malloc(roaring_bitmap_t);
     if (!ans) {
         return NULL;
     }
@@ -1551,8 +1549,7 @@ size_t roaring_bitmap_portable_size_in_bytes(const roaring_bitmap_t *r) {
 
 roaring_bitmap_t *roaring_bitmap_portable_deserialize_safe(const char *buf,
                                                            size_t maxbytes) {
-    roaring_bitmap_t *ans =
-        (roaring_bitmap_t *)roaring_malloc(sizeof(roaring_bitmap_t));
+    roaring_bitmap_t *ans = roaring_typed_malloc(roaring_bitmap_t);
     if (ans == NULL) {
         return NULL;
     }
@@ -1794,8 +1791,7 @@ void roaring_iterator_init_last(const roaring_bitmap_t *r,
 
 roaring_uint32_iterator_t *roaring_iterator_create(const roaring_bitmap_t *r) {
     roaring_uint32_iterator_t *newit =
-        (roaring_uint32_iterator_t *)roaring_malloc(
-            sizeof(roaring_uint32_iterator_t));
+        roaring_typed_malloc(roaring_uint32_iterator_t);
     if (newit == NULL) return NULL;
     roaring_iterator_init(r, newit);
     return newit;
@@ -1804,8 +1800,7 @@ roaring_uint32_iterator_t *roaring_iterator_create(const roaring_bitmap_t *r) {
 roaring_uint32_iterator_t *roaring_uint32_iterator_copy(
     const roaring_uint32_iterator_t *it) {
     roaring_uint32_iterator_t *newit =
-        (roaring_uint32_iterator_t *)roaring_malloc(
-            sizeof(roaring_uint32_iterator_t));
+        roaring_typed_malloc(roaring_uint32_iterator_t);
     memcpy(newit, it, sizeof(roaring_uint32_iterator_t));
     return newit;
 }
@@ -3306,7 +3301,7 @@ const roaring_bitmap_t *roaring_bitmap_frozen_view(const char *buf,
     alloc_size += num_run_containers * sizeof(run_container_t);
     alloc_size += num_array_containers * sizeof(array_container_t);
 
-    char *arena = (char *)roaring_malloc(alloc_size);
+    char *arena = roaring_typed_malloc_n(char, alloc_size);
     if (arena == NULL) {
         return NULL;
     }
@@ -3340,8 +3335,8 @@ const roaring_bitmap_t *roaring_bitmap_frozen_view(const char *buf,
                 break;
             }
             case RUN_CONTAINER_TYPE: {
-                run_container_t *run = (run_container_t *)arena_alloc(
-                    &arena, sizeof(run_container_t));
+                run_container_t *run =
+                    raw_downcast arena_alloc(&arena, sizeof(run_container_t));
                 run->capacity = counts[i];
                 run->n_runs = counts[i];
                 run->runs = run_zone;
@@ -3350,8 +3345,8 @@ const roaring_bitmap_t *roaring_bitmap_frozen_view(const char *buf,
                 break;
             }
             case ARRAY_CONTAINER_TYPE: {
-                array_container_t *array = (array_container_t *)arena_alloc(
-                    &arena, sizeof(array_container_t));
+                array_container_t *array =
+                    raw_downcast arena_alloc(&arena, sizeof(array_container_t));
                 array->capacity = counts[i] + UINT32_C(1);
                 array->cardinality = counts[i] + UINT32_C(1);
                 array->array = array_zone;
@@ -3441,7 +3436,7 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
     alloc_size += num_containers * sizeof(uint8_t);   // typecodes
 
     // allocate bitmap and construct containers
-    char *arena = (char *)roaring_malloc(alloc_size);
+    char *arena = roaring_typed_malloc_n(char, alloc_size);
     if (arena == NULL) {
         return NULL;
     }

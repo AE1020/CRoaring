@@ -16,9 +16,9 @@
 // containers.h last to avoid conflict with ROARING_CONTAINER_T.
 #include <roaring/containers/containers.h>
 
-#define CROARING_ALIGN_BUF(buf, alignment)          \
-    (char *)(((uintptr_t)(buf) + ((alignment)-1)) & \
-             (ptrdiff_t)(~((alignment)-1)))
+#define CROARING_ALIGN_BUF(buf, alignment)            \
+    (char *)(((uintptr_t)(buf) + ((alignment) - 1)) & \
+             (ptrdiff_t)(~((alignment) - 1)))
 
 #define CROARING_BITSET_ALIGNMENT 64
 
@@ -128,8 +128,8 @@ static void extend_containers(roaring64_bitmap_t *r) {
         new_capacity = 5 * r->capacity / 4;
     }
     uint64_t increase = new_capacity - r->capacity;
-    r->containers = (container_t **)roaring_realloc(
-        r->containers, new_capacity * sizeof(container_t *));
+    r->containers =
+        roaring_typed_realloc_n(container_t *, r->containers, new_capacity);
     memset(r->containers + r->capacity, 0, increase * sizeof(container_t *));
     r->capacity = new_capacity;
 }
@@ -222,8 +222,7 @@ static inline roaring64_iterator_t *roaring64_iterator_init_at(
 }
 
 roaring64_bitmap_t *roaring64_bitmap_create(void) {
-    roaring64_bitmap_t *r =
-        (roaring64_bitmap_t *)roaring_malloc(sizeof(roaring64_bitmap_t));
+    roaring64_bitmap_t *r = roaring_typed_malloc(roaring64_bitmap_t);
     art_init_cleared(&r->art);
     r->flags = 0;
     r->capacity = 0;
@@ -1052,8 +1051,8 @@ size_t roaring64_bitmap_shrink_to_fit(roaring64_bitmap_t *r) {
     }
     uint64_t new_capacity = r->first_free;
     if (new_capacity < r->capacity) {
-        r->containers = (container_t **)roaring_realloc(
-            r->containers, new_capacity * sizeof(container_t *));
+        r->containers =
+            roaring_typed_realloc_n(container_t *, r->containers, new_capacity);
         freed += (r->capacity - new_capacity) * sizeof(container_t *);
         r->capacity = new_capacity;
     }
@@ -2586,16 +2585,14 @@ static container_t *container_frozen_view(uint8_t typecode, uint32_t elem_count,
                                           const rle16_t **runs) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            bitset_container_t *c = (bitset_container_t *)roaring_malloc(
-                sizeof(bitset_container_t));
+            bitset_container_t *c = roaring_typed_malloc(bitset_container_t);
             c->cardinality = elem_count;
             c->words = (uint64_t *)*bitsets;
             *bitsets += BITSET_CONTAINER_SIZE_IN_WORDS;
             return c;
         }
         case ARRAY_CONTAINER_TYPE: {
-            array_container_t *c =
-                (array_container_t *)roaring_malloc(sizeof(array_container_t));
+            array_container_t *c = roaring_typed_malloc(array_container_t);
             c->cardinality = elem_count;
             c->capacity = elem_count;
             c->array = (uint16_t *)*arrays;
@@ -2603,8 +2600,7 @@ static container_t *container_frozen_view(uint8_t typecode, uint32_t elem_count,
             return c;
         }
         case RUN_CONTAINER_TYPE: {
-            run_container_t *c =
-                (run_container_t *)roaring_malloc(sizeof(run_container_t));
+            run_container_t *c = roaring_typed_malloc(run_container_t);
             c->n_runs = elem_count;
             c->capacity = elem_count;
             c->runs = (rle16_t *)*runs;
@@ -2649,8 +2645,7 @@ roaring64_bitmap_t *roaring64_bitmap_frozen_view(const char *buf,
     buf += sizeof(r->capacity);
     maxbytes -= sizeof(r->capacity);
 
-    r->containers =
-        (container_t **)roaring_malloc(r->capacity * sizeof(container_t *));
+    r->containers = roaring_typed_malloc_n(container_t *, r->capacity);
 
     // Container element counts.
     if (maxbytes < r->capacity * sizeof(uint16_t)) {
@@ -2754,15 +2749,13 @@ void roaring64_bitmap_to_uint64_array(const roaring64_bitmap_t *r,
 }
 
 roaring64_iterator_t *roaring64_iterator_create(const roaring64_bitmap_t *r) {
-    roaring64_iterator_t *it =
-        (roaring64_iterator_t *)roaring_malloc(sizeof(roaring64_iterator_t));
+    roaring64_iterator_t *it = roaring_typed_malloc(roaring64_iterator_t);
     return roaring64_iterator_init_at(r, it, /*first=*/true);
 }
 
 roaring64_iterator_t *roaring64_iterator_create_last(
     const roaring64_bitmap_t *r) {
-    roaring64_iterator_t *it =
-        (roaring64_iterator_t *)roaring_malloc(sizeof(roaring64_iterator_t));
+    roaring64_iterator_t *it = roaring_typed_malloc(roaring64_iterator_t);
     return roaring64_iterator_init_at(r, it, /*first=*/false);
 }
 
@@ -2777,8 +2770,7 @@ void roaring64_iterator_reinit_last(const roaring64_bitmap_t *r,
 }
 
 roaring64_iterator_t *roaring64_iterator_copy(const roaring64_iterator_t *it) {
-    roaring64_iterator_t *new_it =
-        (roaring64_iterator_t *)roaring_malloc(sizeof(roaring64_iterator_t));
+    roaring64_iterator_t *new_it = roaring_typed_malloc(roaring64_iterator_t);
     memcpy(new_it, it, sizeof(*it));
     return new_it;
 }

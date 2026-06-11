@@ -91,14 +91,12 @@ bool run_container_add(run_container_t *run, uint16_t pos) {
 run_container_t *run_container_create_given_capacity(int32_t size) {
     run_container_t *run;
     /* Allocate the run container itself. */
-    if ((run = (run_container_t *)roaring_malloc(sizeof(run_container_t))) ==
-        NULL) {
+    if ((run = roaring_typed_malloc(run_container_t)) == NULL) {
         return NULL;
     }
     if (size <= 0) {  // we don't want to rely on malloc(0)
         run->runs = NULL;
-    } else if ((run->runs = (rle16_t *)roaring_malloc(sizeof(rle16_t) *
-                                                      size)) == NULL) {
+    } else if ((run->runs = roaring_typed_malloc_n(rle16_t, size)) == NULL) {
         roaring_free(run);
         return NULL;
     }
@@ -112,8 +110,7 @@ int run_container_shrink_to_fit(run_container_t *src) {
     int savings = src->capacity - src->n_runs;
     src->capacity = src->n_runs;
     rle16_t *oldruns = src->runs;
-    src->runs =
-        (rle16_t *)roaring_realloc(oldruns, src->capacity * sizeof(rle16_t));
+    src->runs = roaring_typed_realloc_n(rle16_t, oldruns, src->capacity);
     if (src->runs == NULL) roaring_free(oldruns);  // should never happen?
     return savings;
 }
@@ -208,12 +205,11 @@ void run_container_grow(run_container_t *run, int32_t min, bool copy) {
     assert(run->capacity >= min);
     if (copy) {
         rle16_t *oldruns = run->runs;
-        run->runs = (rle16_t *)roaring_realloc(oldruns,
-                                               run->capacity * sizeof(rle16_t));
+        run->runs = roaring_typed_realloc_n(rle16_t, oldruns, run->capacity);
         if (run->runs == NULL) roaring_free(oldruns);
     } else {
         roaring_free(run->runs);
-        run->runs = (rle16_t *)roaring_malloc(run->capacity * sizeof(rle16_t));
+        run->runs = roaring_typed_malloc_n(rle16_t, run->capacity);
     }
     // We may have run->runs == NULL.
 }

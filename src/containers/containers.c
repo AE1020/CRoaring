@@ -185,8 +185,8 @@ container_t *get_copy_of_container(container_t *c, uint8_t *typecode,
         }
         assert(*typecode != SHARED_CONTAINER_TYPE);
 
-        if ((shared_container = (shared_container_t *)roaring_malloc(
-                 sizeof(shared_container_t))) == NULL) {
+        if ((shared_container = roaring_typed_malloc(shared_container_t)) ==
+            NULL) {
             return NULL;
         }
 

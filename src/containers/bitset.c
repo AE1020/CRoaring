@@ -61,8 +61,7 @@ void bitset_container_set_all(bitset_container_t *bitset) {
 
 /* Create a new bitset. Return NULL in case of failure. */
 bitset_container_t *bitset_container_create(void) {
-    bitset_container_t *bitset =
-        (bitset_container_t *)roaring_malloc(sizeof(bitset_container_t));
+    bitset_container_t *bitset = roaring_typed_malloc(bitset_container_t);
 
     if (!bitset) {
         return NULL;
@@ -135,8 +134,7 @@ void bitset_container_free(bitset_container_t *bitset) {
 /* duplicate container. */
 CROARING_ALLOW_UNALIGNED
 bitset_container_t *bitset_container_clone(const bitset_container_t *src) {
-    bitset_container_t *bitset =
-        (bitset_container_t *)roaring_malloc(sizeof(bitset_container_t));
+    bitset_container_t *bitset = roaring_typed_malloc(bitset_container_t);
 
     if (!bitset) {
         return NULL;

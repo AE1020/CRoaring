@@ -49,15 +49,14 @@ extern inline bool array_container_full(const array_container_t *array);
 array_container_t *array_container_create_given_capacity(int32_t size) {
     array_container_t *container;
 
-    if ((container = (array_container_t *)roaring_malloc(
-             sizeof(array_container_t))) == NULL) {
+    if ((container = roaring_typed_malloc(array_container_t)) == NULL) {
         return NULL;
     }
 
     if (size <= 0) {  // we don't want to rely on malloc(0)
         container->array = NULL;
-    } else if ((container->array = (uint16_t *)roaring_malloc(sizeof(uint16_t) *
-                                                              size)) == NULL) {
+    } else if ((container->array = roaring_typed_malloc_n(uint16_t, size)) ==
+               NULL) {
         roaring_free(container);
         return NULL;
     }
@@ -138,8 +137,7 @@ int array_container_shrink_to_fit(array_container_t *src) {
         src->array = NULL;
     } else {
         uint16_t *oldarray = src->array;
-        src->array = (uint16_t *)roaring_realloc(
-            oldarray, src->capacity * sizeof(uint16_t));
+        src->array = roaring_typed_realloc_n(uint16_t, oldarray, src->capacity);
         if (src->array == NULL) roaring_free(oldarray);  // should never happen?
     }
     return savings;
@@ -173,12 +171,11 @@ void array_container_grow(array_container_t *container, int32_t min,
 
     if (preserve) {
         container->array =
-            (uint16_t *)roaring_realloc(array, new_capacity * sizeof(uint16_t));
+            roaring_typed_realloc_n(uint16_t, array, new_capacity);
         if (container->array == NULL) roaring_free(array);
     } else {
         roaring_free(array);
-        container->array =
-            (uint16_t *)roaring_malloc(new_capacity * sizeof(uint16_t));
+        container->array = roaring_typed_malloc_n(uint16_t, new_capacity);
     }
 
     // if realloc fails, we have container->array == NULL.

@@ -19,6 +19,14 @@
 // The preferences are a separate file to separate out tweakable parameters
 #include <roaring/containers/perfparameters.h>
 
+// helper macros which gloss C++ vs. C difference for void pointer downcast
+// (and makes the code look nicer)
+//
+#define roaring_typed_malloc(T) ((T*)roaring_malloc(sizeof(T)))
+#define roaring_typed_malloc_n(T, n) ((T*)roaring_malloc(sizeof(T) * (n)))
+#define roaring_typed_realloc_n(T, p, n) \
+    ((T*)roaring_realloc((p), sizeof(T) * (n)))
+
 #ifdef __cplusplus
 namespace roaring {
 namespace internal {  // No extern "C" (contains template)

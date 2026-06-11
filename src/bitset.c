@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Want to include these files for roaring_typed_malloc(), etc.
+#include <roaring/roaring_types.h>
+#include <roaring/containers/container_defs.h>
+
+// These have to come afer roaring_types.h, not before
 #include <roaring/bitset/bitset.h>
 #include <roaring/memory.h>
 #include <roaring/portability.h>
@@ -32,7 +37,7 @@ extern inline size_t bitset_size_in_bytes(const bitset_t *bitset);
 bitset_t *bitset_create(void) {
     bitset_t *bitset = NULL;
     /* Allocate the bitset itself. */
-    if ((bitset = (bitset_t *)roaring_malloc(sizeof(bitset_t))) == NULL) {
+    if ((bitset = roaring_typed_malloc(bitset_t)) == NULL) {
         return NULL;
     }
     bitset->array = NULL;
@@ -46,7 +51,7 @@ bitset_t *bitset_create(void) {
 bitset_t *bitset_create_with_capacity(size_t size) {
     bitset_t *bitset = NULL;
     /* Allocate the bitset itself. */
-    if ((bitset = (bitset_t *)roaring_malloc(sizeof(bitset_t))) == NULL) {
+    if ((bitset = roaring_typed_malloc(bitset_t)) == NULL) {
         return NULL;
     }
     bitset->arraysize =
@@ -64,13 +69,13 @@ bitset_t *bitset_create_with_capacity(size_t size) {
 bitset_t *bitset_copy(const bitset_t *bitset) {
     bitset_t *copy = NULL;
     /* Allocate the bitset itself. */
-    if ((copy = (bitset_t *)roaring_malloc(sizeof(bitset_t))) == NULL) {
+    if ((copy = roaring_typed_malloc(bitset_t)) == NULL) {
         return NULL;
     }
     memcpy(copy, bitset, sizeof(bitset_t));
     copy->capacity = copy->arraysize;
-    if ((copy->array = (uint64_t *)roaring_malloc(sizeof(uint64_t) *
-                                                  bitset->arraysize)) == NULL) {
+    if ((copy->array = roaring_typed_malloc_n(uint64_t, bitset->arraysize)) ==
+        NULL) {
         roaring_free(copy);
         return NULL;
     }
@@ -161,8 +166,8 @@ bool bitset_resize(bitset_t *bitset, size_t newarraysize, bool padwithzeroes) {
         while (newcapacity < newarraysize) {
             newcapacity *= 2;
         }
-        if ((newarray = (uint64_t *)roaring_realloc(
-                 bitset->array, sizeof(uint64_t) * newcapacity)) == NULL) {
+        if ((newarray = roaring_typed_realloc_n(uint64_t, bitset->array,
+                                                newcapacity)) == NULL) {
             return false;
         }
         bitset->capacity = newcapacity;
@@ -250,8 +255,8 @@ bool bitset_grow(bitset_t *bitset, size_t newarraysize) {
         while (newcapacity < newarraysize) {
             newcapacity *= 2;
         }
-        if ((newarray = (uint64_t *)roaring_realloc(
-                 bitset->array, sizeof(uint64_t) * newcapacity)) == NULL) {
+        if ((newarray = roaring_typed_realloc_n(uint64_t, bitset->array,
+                                                newcapacity)) == NULL) {
             return false;
         }
         bitset->capacity = newcapacity;
@@ -474,8 +479,8 @@ bool bitset_trim(bitset_t *bitset) {
     }
     if (bitset->capacity == newsize) return true;  // nothing to do
     uint64_t *newarray;
-    if ((newarray = (uint64_t *)roaring_realloc(
-             bitset->array, sizeof(uint64_t) * newsize)) == NULL) {
+    if ((newarray = roaring_typed_realloc_n(uint64_t, bitset->array,
+                                            newsize)) == NULL) {
         return false;
     }
     bitset->array = newarray;

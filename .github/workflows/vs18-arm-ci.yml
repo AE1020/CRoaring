@@ -7,17 +7,19 @@ permissions:
 
 jobs:
   ci:
-    name: windows-vs18
+    name: windows-vs18-${{ matrix.arch }}
     runs-on: windows-2025-vs2026
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {arch: ARM64}
+        arch: [ARM64]
+
     steps:
       - name: checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      - name: Use cmake
-        run: |
-          cmake -A ${{ matrix.arch }} -DCMAKE_CROSSCOMPILING=1 -B build  &&
-          cmake --build build --verbose
+
+      - name: Configure
+        run: cmake -S . -B build -A ${{ matrix.arch }} -DCMAKE_CROSSCOMPILING=1
+
+      - name: Build
+        run: cmake --build build --verbose

@@ -22,34 +22,29 @@ jobs:
             pkg install developer/cmake developer/gcc13 developer/build/gnu-make developer/versioning/git
           run: |
             set -e
-            SRCDIR=$(pwd)
+            INSTALL_PREFIX="$(pwd)/install"
+            INSTALL_PREFIX_SHARED="$(pwd)/installshared"
 
-            # Build and Test
-            mkdir build
-            cd build
-            cmake -DCMAKE_INSTALL_PREFIX:PATH=destination -DENABLE_ROARING_TESTS=ON ..
-            cmake --build . 
-            ctest . --output-on-failure
-            cmake --install . 
-            cd ../tests/installation/find && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../../build/destination .. && cmake --build .
-            cd $SRCDIR
+            # Release build
+            cmake -S . -B build -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" -DENABLE_ROARING_TESTS=ON
+            cmake --build build
+            ctest --test-dir build --output-on-failure
+            cmake --install build
+            cmake -S tests/installation/find -B tests/installation/find/build -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}"
+            cmake --build tests/installation/find/build
 
-            # Build and Test Shared
-            cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX:PATH=destinationshared -DENABLE_ROARING_TESTS=ON -B buildshared
+            # Shared library build
+            cmake -S . -B buildshared -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX_SHARED}" -DENABLE_ROARING_TESTS=ON
             cmake --build buildshared
             cmake --install buildshared
-            cd tests/installation/find
-            cmake -DCMAKE_INSTALL_PREFIX:PATH=../../../destinationshared -B buildshared
-            cmake --build buildshared
-            ./buildshared/repro
-            cd $SRCDIR
+            cmake -S tests/installation/find -B tests/installation/find/buildshared -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX_SHARED}"
+            cmake --build tests/installation/find/buildshared
+            ./tests/installation/find/buildshared/repro
 
-            # Build and Test Debug
-            mkdir builddebug
-            cd builddebug
-            cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=destination -DENABLE_ROARING_TESTS=ON ..
-            cmake --build .
-            ctest . --output-on-failure
-            cmake --install .
-            cd ../tests/installation/find && mkdir builddebug && cd builddebug && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=../../../build/destination .. && cmake --build .
-            cd $SRCDIR
+            # Debug build
+            cmake -S . -B builddebug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH="${INSTALL_PREFIX}" -DENABLE_ROARING_TESTS=ON
+            cmake --build builddebug
+            ctest --test-dir builddebug --output-on-failure
+            cmake --install builddebug
+            cmake -S tests/installation/find -B tests/installation/find/builddebug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}"
+            cmake --build tests/installation/find/builddebug

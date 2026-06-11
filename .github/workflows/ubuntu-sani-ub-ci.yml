@@ -16,12 +16,18 @@ jobs:
       CC: gcc
       CXX: g++
 
-    steps: 
+    steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      - name: Build and Test
+
+      - name: Configure build
         run: |
-          mkdir build
-          cd build
-          cmake  -DROARING_SANITIZE_UNDEFINED=ON -DENABLE_ROARING_TESTS=ON ..
-          cmake --build . 
-          ctest . --output-on-failure
+          cmake \
+            -S . \
+            -B build \
+            -DROARING_SANITIZE_UNDEFINED=ON \
+            -DENABLE_ROARING_TESTS=ON
+
+      - name: Build and test
+        run: |
+          cmake --build build
+          ctest --test-dir build --output-on-failure

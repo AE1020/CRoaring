@@ -6,33 +6,33 @@ permissions:
   contents: read
 jobs:
   ubuntu-build:
+    name: alpine-${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: release, build_flags: '' }
+          - { name: debug,   build_flags: '-DCMAKE_BUILD_TYPE=Debug' }
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      - name: start docker
+
+      - name: Start docker
         run: |
           docker run -w /src -dit --name alpine -v $PWD:/src alpine:latest
           echo 'docker exec alpine "$@";' > ./alpine.sh
           chmod +x ./alpine.sh
-      - name: install packages
+
+      - name: Install packages
         run: |
           ./alpine.sh apk update
           ./alpine.sh apk add build-base cmake g++ linux-headers git bash
-      - name: cmake
-        run: |
-          ./alpine.sh cmake -DENABLE_ROARING_TESTS=ON -B build_for_alpine
-      - name: build
-        run: |
-          ./alpine.sh cmake --build build_for_alpine
-      - name: test
-        run: |
-          ./alpine.sh bash -c "cd build_for_alpine && ctest"
-      - name: cmakedebug
-        run: |
-          ./alpine.sh cmake -B build_for_alpine_debug -DCMAKE_BUILD_TYPE=Debug
-      - name: builddebug
-        run: |
-          ./alpine.sh cmake --build build_for_alpine_debug
-      - name: testdebug
-        run: |
-          ./alpine.sh bash -c "cd build_for_alpine_debug && ctest"
+
+      - name: Configure
+        run: ./alpine.sh cmake -S . -B build -DENABLE_ROARING_TESTS=ON ${{ matrix.build_flags }}
+
+      - name: Build
+        run: ./alpine.sh cmake --build build
+
+      - name: Test
+        run: ./alpine.sh ctest --test-dir build

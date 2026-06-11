@@ -12,14 +12,17 @@ jobs:
     name: ubuntu-gcc
     runs-on: ubuntu-latest
 
-    steps: 
+    steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      - name: Build and Test
+
+      - name: Configure/build/test/install
         run: |
-          mkdir build
-          cd build
-          cmake -DROARING_DISABLE_AVX=ON -DCMAKE_INSTALL_PREFIX:PATH=destination -DENABLE_ROARING_TESTS=ON ..
-          cmake --build .
-          ctest . --output-on-failure
-          cmake --install . 
-          cd ../tests/installation/find && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX:PATH=../../../build/destination .. &&  cmake --build .
+          cmake -S . -B build -DROARING_DISABLE_AVX=ON -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/install" -DENABLE_ROARING_TESTS=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+          cmake --install build
+
+      - name: Build installation-find sample
+        run: |
+          cmake -S tests/installation/find -B tests/installation/find/build -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/install"
+          cmake --build tests/installation/find/build

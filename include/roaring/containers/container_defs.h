@@ -9,9 +9,12 @@
 #ifndef INCLUDE_CONTAINERS_CONTAINER_DEFS_H_
 #define INCLUDE_CONTAINERS_CONTAINER_DEFS_H_
 
-#ifdef __cplusplus
-#include <type_traits>  // used by casting helper for compile-time check
-#endif
+// container_defs.h is the first file that isn't part of the public API, so
+// it's where we want to put configuration information before the single
+// inclusion of needful.h for the internal code.
+//
+#define NEEDFUL_CAST_SHORTHANDS 1
+#include "../needful.h"
 
 // The preferences are a separate file to separate out tweakable parameters
 #include <roaring/containers/perfparameters.h>
@@ -47,49 +50,11 @@ typedef ROARING_CONTAINER_T container_t;
  *         uint16_t *array;
  *     }
  */
-#if defined(__cplusplus)
+#if __cplusplus
 #define STRUCT_CONTAINER(name) struct name : public container_t /* { ... } */
 #else
 #define STRUCT_CONTAINER(name) struct name /* { ... } */
 #endif
-
-/**
- * Since container_t* is not void* in C++, "dangerous" casts are not needed to
- * downcast; only a static_cast<> is needed.  Define a macro for static casting
- * which helps make casts more visible, and catches problems at compile-time
- * when building the C sources in C++ mode:
- *
- *     void some_func(container_t **c, ...) {  // double pointer, not single
- *         array_container_t *ac1 = (array_container_t *)(c);  // uncaught!!
- *
- *         array_container_t *ac2 = CAST(array_container_t *, c)  // C++ errors
- *         array_container_t *ac3 = CAST_array(c);  // shorthand for #2, errors
- *     }
- *
- * Trickier to do is a cast from `container**` to `array_container_t**`.  This
- * needs a reinterpret_cast<>, which sacrifices safety...so a template is used
- * leveraging <type_traits> to make sure it's legal in the C++ build.
- */
-#ifdef __cplusplus
-#define CAST(type, value) static_cast<type>(value)
-#define movable_CAST(type, value) movable_CAST_HELPER<type>(value)
-
-template <typename PPDerived, typename Base>
-PPDerived movable_CAST_HELPER(Base **ptr_to_ptr) {
-    typedef typename std::remove_pointer<PPDerived>::type PDerived;
-    typedef typename std::remove_pointer<PDerived>::type Derived;
-    static_assert(std::is_base_of<Base, Derived>::value,
-                  "use movable_CAST() for container_t** => xxx_container_t**");
-    return reinterpret_cast<Derived **>(ptr_to_ptr);
-}
-#else
-#define CAST(type, value) ((type)value)
-#define movable_CAST(type, value) ((type)value)
-#endif
-
-// Use for converting e.g. an `array_container_t**` to a `container_t**`
-//
-#define movable_CAST_base(c) movable_CAST(container_t **, c)
 
 #ifdef __cplusplus
 }

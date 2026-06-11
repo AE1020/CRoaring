@@ -162,7 +162,7 @@ void run_container_offset(const run_container_t *c, container_t **loc,
         for (unsigned int i = 0; i < lo_cap; ++i) {
             lo->runs[i].value += offset;
         }
-        *loc = (container_t *)lo;
+        *loc = lo;
     }
 
     if (hic && hi_cap) {
@@ -172,7 +172,7 @@ void run_container_offset(const run_container_t *c, container_t **loc,
         for (unsigned int i = 0; i < hi_cap; ++i) {
             hi->runs[i].value += offset;
         }
-        *hic = (container_t *)hi;
+        *hic = hi;
     }
 
     // Fix the split.

@@ -1,6 +1,21 @@
 BasedOnStyle: Google
 IndentWidth: 4
 
+# We don't want clang-format to make `downcast *ptr` look like `downcast * ptr`
+# because it's a unary operator, not a multiplication.
+#
+# Also, `downcast cast(T *, ptr)->member` shouldn't put spaces around the
+# arrow to look like `downcast cast(T *, ptr) -> member`.
+#
+# https://needful.metaeducation.com/faq#clang-format-needful
+#
+TypeNames:
+  - nocast
+  - downcast
+  - raw_downcast
+  - cast
+  - raw_cast
+
 # Include ordering rules
 # ======================
 #

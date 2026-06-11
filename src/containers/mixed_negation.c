@@ -130,7 +130,7 @@ bool array_container_negation_range(const array_container_t *src,
 
     array_container_t *arr =
         array_container_create_given_capacity(new_cardinality);
-    *dst = (container_t *)arr;
+    *dst = arr;
     if (new_cardinality == 0) {
         arr->cardinality = new_cardinality;
         return false;  // we are done.

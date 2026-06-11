@@ -58,16 +58,16 @@ extern bool container_contains(
 void container_free(container_t *c, uint8_t type) {
     switch (type) {
         case BITSET_CONTAINER_TYPE:
-            bitset_container_free(CAST_bitset(c));
+            bitset_container_free(downcast c);
             break;
         case ARRAY_CONTAINER_TYPE:
-            array_container_free(CAST_array(c));
+            array_container_free(downcast c);
             break;
         case RUN_CONTAINER_TYPE:
-            run_container_free(CAST_run(c));
+            run_container_free(downcast c);
             break;
         case SHARED_CONTAINER_TYPE:
-            shared_container_free(CAST_shared(c));
+            shared_container_free(downcast c);
             break;
         default:
             assert(false);
@@ -79,13 +79,13 @@ void container_printf(const container_t *c, uint8_t type) {
     c = container_unwrap_shared(c, &type);
     switch (type) {
         case BITSET_CONTAINER_TYPE:
-            bitset_container_printf(const_CAST_bitset(c));
+            bitset_container_printf(downcast c);
             return;
         case ARRAY_CONTAINER_TYPE:
-            array_container_printf(const_CAST_array(c));
+            array_container_printf(downcast c);
             return;
         case RUN_CONTAINER_TYPE:
-            run_container_printf(const_CAST_run(c));
+            run_container_printf(downcast c);
             return;
         default:
             roaring_unreachable;
@@ -97,13 +97,13 @@ void container_printf_as_uint32_array(const container_t *c, uint8_t typecode,
     c = container_unwrap_shared(c, &typecode);
     switch (typecode) {
         case BITSET_CONTAINER_TYPE:
-            bitset_container_printf_as_uint32_array(const_CAST_bitset(c), base);
+            bitset_container_printf_as_uint32_array(downcast c, base);
             return;
         case ARRAY_CONTAINER_TYPE:
-            array_container_printf_as_uint32_array(const_CAST_array(c), base);
+            array_container_printf_as_uint32_array(downcast c, base);
             return;
         case RUN_CONTAINER_TYPE:
-            run_container_printf_as_uint32_array(const_CAST_run(c), base);
+            run_container_printf_as_uint32_array(downcast c, base);
             return;
         default:
             roaring_unreachable;
@@ -119,8 +119,7 @@ bool container_internal_validate(const container_t *container, uint8_t typecode,
     // Not using container_unwrap_shared because it asserts if shared containers
     // are nested
     if (typecode == SHARED_CONTAINER_TYPE) {
-        const shared_container_t *shared_container =
-            const_CAST_shared(container);
+        const shared_container_t *shared_container = downcast container;
         if (croaring_refcount_get(&shared_container->counter) == 0) {
             *reason = "shared container has zero refcount";
             return false;
@@ -138,13 +137,11 @@ bool container_internal_validate(const container_t *container, uint8_t typecode,
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE:
-            return bitset_container_validate(const_CAST_bitset(container),
-                                             reason);
+            return bitset_container_validate(downcast container, reason);
         case ARRAY_CONTAINER_TYPE:
-            return array_container_validate(const_CAST_array(container),
-                                            reason);
+            return array_container_validate(downcast container, reason);
         case RUN_CONTAINER_TYPE:
-            return run_container_validate(const_CAST_run(container), reason);
+            return run_container_validate(downcast container, reason);
         default:
             *reason = "invalid typecode";
             return false;
@@ -182,7 +179,7 @@ container_t *get_copy_of_container(container_t *c, uint8_t *typecode,
     if (copy_on_write) {
         shared_container_t *shared_container;
         if (*typecode == SHARED_CONTAINER_TYPE) {
-            shared_container = CAST_shared(c);
+            shared_container = downcast c;
             croaring_refcount_inc(&shared_container->counter);
             return shared_container;
         }
@@ -219,11 +216,11 @@ container_t *container_clone(const container_t *c, uint8_t typecode) {
     // c = container_unwrap_shared(c, &typecode);
     switch (typecode) {
         case BITSET_CONTAINER_TYPE:
-            return bitset_container_clone(const_CAST_bitset(c));
+            return bitset_container_clone(downcast c);
         case ARRAY_CONTAINER_TYPE:
-            return array_container_clone(const_CAST_array(c));
+            return array_container_clone(downcast c);
         case RUN_CONTAINER_TYPE:
-            return run_container_clone(const_CAST_run(c));
+            return run_container_clone(downcast c);
         case SHARED_CONTAINER_TYPE:
             // Shared containers are not cloneable. Are you mixing COW and
             // non-COW bitmaps?
@@ -304,7 +301,7 @@ roaring_container_iterator_t container_init_iterator(const container_t *c,
                                                      uint16_t *value) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = 0;
             uint64_t word;
             while ((word = bc->words[wordindex]) == 0) {
@@ -318,14 +315,14 @@ roaring_container_iterator_t container_init_iterator(const container_t *c,
             };
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             *value = ac->array[0];
             return ROARING_INIT_ROARING_CONTAINER_ITERATOR_T{
                 .index = 0,
             };
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             *value = rc->runs[0].value;
             return ROARING_INIT_ROARING_CONTAINER_ITERATOR_T{
                 .index = 0,
@@ -343,7 +340,7 @@ roaring_container_iterator_t container_init_iterator_last(const container_t *c,
                                                           uint16_t *value) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = BITSET_CONTAINER_SIZE_IN_WORDS - 1;
             uint64_t word;
             while ((word = bc->words[wordindex]) == 0) {
@@ -358,7 +355,7 @@ roaring_container_iterator_t container_init_iterator_last(const container_t *c,
             };
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             int32_t index = ac->cardinality - 1;
             *value = ac->array[index];
             return ROARING_INIT_ROARING_CONTAINER_ITERATOR_T{
@@ -366,7 +363,7 @@ roaring_container_iterator_t container_init_iterator_last(const container_t *c,
             };
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             int32_t run_index = rc->n_runs - 1;
             const rle16_t *last_run = &rc->runs[run_index];
             *value = last_run->value + last_run->length;
@@ -389,19 +386,19 @@ bool container_iterator_lower_bound(const container_t *c, uint8_t typecode,
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             it->index = bitset_container_index_equalorlarger(bc, val);
             *value_out = it->index;
             return true;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             it->index = array_container_index_equalorlarger(ac, val);
             *value_out = ac->array[it->index];
             return true;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             it->index = run_container_index_equalorlarger(rc, val);
             if (rc->runs[it->index].value <= val) {
                 *value_out = val;
@@ -428,7 +425,7 @@ bool container_iterator_read_into_uint32(const container_t *c, uint8_t typecode,
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = it->index / 64;
             uint64_t word =
                 bc->words[wordindex] & (UINT64_MAX << (it->index % 64));
@@ -457,7 +454,7 @@ bool container_iterator_read_into_uint32(const container_t *c, uint8_t typecode,
             return false;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint32_t num_values =
                 minimum_uint32(ac->cardinality - it->index, count);
             for (uint32_t i = 0; i < num_values; i++) {
@@ -472,7 +469,7 @@ bool container_iterator_read_into_uint32(const container_t *c, uint8_t typecode,
             return false;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             do {
                 uint32_t largest_run_value =
                     rc->runs[it->index].value + rc->runs[it->index].length;
@@ -517,7 +514,7 @@ bool container_iterator_read_into_uint64(const container_t *c, uint8_t typecode,
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = it->index / 64;
             uint64_t word =
                 bc->words[wordindex] & (UINT64_MAX << (it->index % 64));
@@ -546,7 +543,7 @@ bool container_iterator_read_into_uint64(const container_t *c, uint8_t typecode,
             return false;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint32_t num_values =
                 minimum_uint32(ac->cardinality - it->index, count);
             for (uint32_t i = 0; i < num_values; i++) {
@@ -561,7 +558,7 @@ bool container_iterator_read_into_uint64(const container_t *c, uint8_t typecode,
             return false;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             do {
                 uint32_t largest_run_value =
                     rc->runs[it->index].value + rc->runs[it->index].length;
@@ -605,7 +602,7 @@ bool container_iterator_read_backward_into_uint32(
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = it->index / 64;
             uint64_t word =
                 bc->words[wordindex] & (UINT64_MAX >> (63 - (it->index % 64)));
@@ -634,7 +631,7 @@ bool container_iterator_read_backward_into_uint32(
             return false;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint32_t num_values =
                 minimum_uint32((uint32_t)(it->index + 1), count);
             for (uint32_t i = 0; i < num_values; i++) {
@@ -649,7 +646,7 @@ bool container_iterator_read_backward_into_uint32(
             return false;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             do {
                 uint32_t run_start = rc->runs[it->index].value;
                 uint32_t num_values = minimum_uint32(*value_out - run_start + 1,
@@ -694,7 +691,7 @@ bool container_iterator_read_backward_into_uint64(
     }
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t wordindex = it->index / 64;
             uint64_t word =
                 bc->words[wordindex] & (UINT64_MAX >> (63 - (it->index % 64)));
@@ -723,7 +720,7 @@ bool container_iterator_read_backward_into_uint64(
             return false;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint32_t num_values =
                 minimum_uint32((uint32_t)(it->index + 1), count);
             for (uint32_t i = 0; i < num_values; i++) {
@@ -738,7 +735,7 @@ bool container_iterator_read_backward_into_uint64(
             return false;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             do {
                 uint32_t run_start = rc->runs[it->index].value;
                 uint32_t num_values = minimum_uint32(*value_out - run_start + 1,
@@ -778,7 +775,7 @@ bool container_iterator_skip(const container_t *c, uint8_t typecode,
     skip_count = minimum_uint32(skip_count, (uint32_t)UINT16_MAX + 1);
     switch (typecode) {
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             actually_skipped =
                 minimum_uint32(ac->cardinality - it->index, skip_count);
             it->index += actually_skipped;
@@ -789,7 +786,7 @@ bool container_iterator_skip(const container_t *c, uint8_t typecode,
             break;
         }
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
 
             uint32_t remaining_skip = skip_count;
             uint32_t current_index = it->index;
@@ -819,7 +816,7 @@ bool container_iterator_skip(const container_t *c, uint8_t typecode,
             break;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
 
             uint16_t current_value = *value_out;
             uint32_t remaining_skip = skip_count;
@@ -875,7 +872,7 @@ bool container_iterator_skip_backward(const container_t *c, uint8_t typecode,
     skip_count = minimum_uint32(skip_count, (uint32_t)UINT16_MAX + 1);
     switch (typecode) {
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             // Allow skipping back to -1
             actually_skipped = minimum_uint32(it->index + 1, skip_count);
             it->index -= actually_skipped;
@@ -886,7 +883,7 @@ bool container_iterator_skip_backward(const container_t *c, uint8_t typecode,
             break;
         }
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
 
             uint32_t remaining_skip = skip_count;
             uint32_t current_index = it->index;
@@ -920,7 +917,7 @@ bool container_iterator_skip_backward(const container_t *c, uint8_t typecode,
             break;
         }
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
 
             uint16_t current_value = *value_out;
             uint32_t remaining_skip = skip_count;
@@ -973,7 +970,7 @@ uint16_t container_iterator_find_run_end(const container_t *c, uint8_t typecode,
                                          uint16_t *value, bool *has_more) {
     switch (typecode) {
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             uint16_t run_end =
                 rc->runs[it->index].value + rc->runs[it->index].length;
             it->index++;
@@ -986,7 +983,7 @@ uint16_t container_iterator_find_run_end(const container_t *c, uint8_t typecode,
             return run_end;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint16_t v = *value;
             while (it->index + 1 < ac->cardinality &&
                    ac->array[it->index + 1] == (uint16_t)(v + 1)) {
@@ -1003,7 +1000,7 @@ uint16_t container_iterator_find_run_end(const container_t *c, uint8_t typecode,
             return v;
         }
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             uint32_t pos = (uint32_t)*value + 1;
             uint16_t run_end;
             if (pos >= (1 << 16)) {
@@ -1057,7 +1054,7 @@ uint16_t container_iterator_find_run_start(const container_t *c,
                                            uint16_t *value, bool *has_more) {
     switch (typecode) {
         case RUN_CONTAINER_TYPE: {
-            const run_container_t *rc = const_CAST_run(c);
+            const run_container_t *rc = downcast c;
             uint16_t run_start = rc->runs[it->index].value;
             it->index--;
             if (it->index >= 0) {
@@ -1069,7 +1066,7 @@ uint16_t container_iterator_find_run_start(const container_t *c,
             return run_start;
         }
         case ARRAY_CONTAINER_TYPE: {
-            const array_container_t *ac = const_CAST_array(c);
+            const array_container_t *ac = downcast c;
             uint16_t v = *value;
             while (it->index > 0 &&
                    ac->array[it->index - 1] == (uint16_t)(v - 1)) {
@@ -1086,7 +1083,7 @@ uint16_t container_iterator_find_run_start(const container_t *c,
             return v;
         }
         case BITSET_CONTAINER_TYPE: {
-            const bitset_container_t *bc = const_CAST_bitset(c);
+            const bitset_container_t *bc = downcast c;
             if (*value == 0) {
                 *has_more = false;
                 return 0;

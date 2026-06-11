@@ -3,3 +3,10 @@
 .*microbenchmarks/performancecounters/event_counter.h
 .*microbenchmarks/performancecounters/apple_arm_events.h
 .*microbenchmarks/toni_ronnko_dirent.h
+
+# needful.h is a committed third-party file
+# needful-enhanced/ is not present in all source trees
+# See https://needful.metaeducation.com/setup
+#
+.*include/roaring/needful.h
+.*include/roaring/needful-enhanced/.*

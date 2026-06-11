@@ -35,13 +35,13 @@ static inline void delegated_add(container_t *container, uint8_t typecode,
                                  uint16_t val) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE:
-            bitset_container_add(CAST_bitset(container), val);
+            bitset_container_add(downcast container, val);
             break;
         case ARRAY_CONTAINER_TYPE:
-            array_container_add(CAST_array(container), val);
+            array_container_add(downcast container, val);
             break;
         case RUN_CONTAINER_TYPE:
-            run_container_add(CAST_run(container), val);
+            run_container_add(downcast container, val);
             break;
         default:
             assert(false);

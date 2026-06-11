@@ -358,13 +358,14 @@ void roaring_bitmap_printf_describe(const roaring_bitmap_t *r) {
 
     printf("{");
     for (int i = 0; i < ra->size; ++i) {
+        container_t *c = ra->containers[i];
         printf("%d: %s (%d)", ra->keys[i],
-               get_full_container_name(ra->containers[i], ra->typecodes[i]),
-               container_get_cardinality(ra->containers[i], ra->typecodes[i]));
+               get_full_container_name(c, ra->typecodes[i]),
+               container_get_cardinality(c, ra->typecodes[i]));
         if (ra->typecodes[i] == SHARED_CONTAINER_TYPE) {
             printf("(shared count = %" PRIu32 " )",
                    croaring_refcount_get(
-                       &(CAST_shared(ra->containers[i])->counter)));
+                       &(cast(shared_container_t *, c)->counter)));
         }
 
         if (i + 1 < ra->size) {
@@ -1141,7 +1142,7 @@ void roaring_bitmap_xor_inplace(roaring_bitmap_t *x1,
             container_t *c;
             if (type1 == SHARED_CONTAINER_TYPE) {
                 c = container_xor(c1, type1, c2, type2, &result_type);
-                shared_container_free(CAST_shared(c1));  // so release
+                shared_container_free(downcast c1);  // so release
             } else {
                 c = container_ixor(c1, type1, c2, type2, &result_type);
             }
@@ -1294,7 +1295,7 @@ void roaring_bitmap_andnot_inplace(roaring_bitmap_t *x1,
             container_t *c;
             if (type1 == SHARED_CONTAINER_TYPE) {
                 c = container_andnot(c1, type1, c2, type2, &result_type);
-                shared_container_free(CAST_shared(c1));  // release
+                shared_container_free(downcast c1);  // release
             } else {
                 c = container_iandnot(c1, type1, c2, type2, &result_type);
             }
@@ -1489,19 +1490,20 @@ bool roaring_bitmap_remove_run_compression(roaring_bitmap_t *r) {
         if (get_container_type(c, type_original) == RUN_CONTAINER_TYPE) {
             answer = true;
             if (type_original == SHARED_CONTAINER_TYPE) {
-                run_container_t *truec = CAST_run(CAST_shared(c)->container);
+                run_container_t *truec =
+                    downcast cast(shared_container_t *, c)->container;
                 int32_t card = run_container_cardinality(truec);
                 container_t *c1 = convert_to_bitset_or_array_container(
                     truec, card, &type_after);
-                shared_container_free(CAST_shared(c));  // frees run as needed
+                shared_container_free(downcast c);  // frees run as needed
                 ra_set_container_at_index(&r->high_low_container, i, c1,
                                           type_after);
 
             } else {
-                int32_t card = run_container_cardinality(CAST_run(c));
+                int32_t card = run_container_cardinality(downcast c);
                 container_t *c1 = convert_to_bitset_or_array_container(
-                    CAST_run(c), card, &type_after);
-                run_container_free(CAST_run(c));
+                    downcast c, card, &type_after);
+                run_container_free(downcast c);
                 ra_set_container_at_index(&r->high_low_container, i, c1,
                                           type_after);
             }
@@ -2712,7 +2714,7 @@ void roaring_bitmap_lazy_xor_inplace(roaring_bitmap_t *x1,
             container_t *c;
             if (type1 == SHARED_CONTAINER_TYPE) {
                 c = container_lazy_xor(c1, type1, c2, type2, &result_type);
-                shared_container_free(CAST_shared(c1));  // release
+                shared_container_free(downcast c1);  // release
             } else {
                 c = container_lazy_ixor(c1, type1, c2, type2, &result_type);
             }
@@ -3129,13 +3131,12 @@ size_t roaring_bitmap_frozen_size_in_bytes(const roaring_bitmap_t *rb) {
                 break;
             }
             case RUN_CONTAINER_TYPE: {
-                const run_container_t *rc = const_CAST_run(ra->containers[i]);
+                const run_container_t *rc = downcast ra->containers[i];
                 num_bytes += rc->n_runs * sizeof(rle16_t);
                 break;
             }
             case ARRAY_CONTAINER_TYPE: {
-                const array_container_t *ac =
-                    const_CAST_array(ra->containers[i]);
+                const array_container_t *ac = downcast ra->containers[i];
                 num_bytes += ac->cardinality * sizeof(uint16_t);
                 break;
             }
@@ -3173,13 +3174,12 @@ void roaring_bitmap_frozen_serialize(const roaring_bitmap_t *rb, char *buf) {
                 break;
             }
             case RUN_CONTAINER_TYPE: {
-                const run_container_t *rc = const_CAST_run(ra->containers[i]);
+                const run_container_t *rc = downcast ra->containers[i];
                 run_zone_size += rc->n_runs * sizeof(rle16_t);
                 break;
             }
             case ARRAY_CONTAINER_TYPE: {
-                const array_container_t *ac =
-                    const_CAST_array(ra->containers[i]);
+                const array_container_t *ac = downcast ra->containers[i];
                 array_zone_size += ac->cardinality * sizeof(uint16_t);
                 break;
             }
@@ -3200,8 +3200,7 @@ void roaring_bitmap_frozen_serialize(const roaring_bitmap_t *rb, char *buf) {
         uint16_t count;
         switch (ra->typecodes[i]) {
             case BITSET_CONTAINER_TYPE: {
-                const bitset_container_t *bc =
-                    const_CAST_bitset(ra->containers[i]);
+                const bitset_container_t *bc = downcast ra->containers[i];
                 memcpy(bitset_zone, bc->words,
                        BITSET_CONTAINER_SIZE_IN_WORDS * sizeof(uint64_t));
                 bitset_zone += BITSET_CONTAINER_SIZE_IN_WORDS;
@@ -3215,7 +3214,7 @@ void roaring_bitmap_frozen_serialize(const roaring_bitmap_t *rb, char *buf) {
                 break;
             }
             case RUN_CONTAINER_TYPE: {
-                const run_container_t *rc = const_CAST_run(ra->containers[i]);
+                const run_container_t *rc = downcast ra->containers[i];
                 size_t num_bytes = rc->n_runs * sizeof(rle16_t);
                 memcpy(run_zone, rc->runs, num_bytes);
                 run_zone += rc->n_runs;
@@ -3223,8 +3222,7 @@ void roaring_bitmap_frozen_serialize(const roaring_bitmap_t *rb, char *buf) {
                 break;
             }
             case ARRAY_CONTAINER_TYPE: {
-                const array_container_t *ac =
-                    const_CAST_array(ra->containers[i]);
+                const array_container_t *ac = downcast ra->containers[i];
                 size_t num_bytes = ac->cardinality * sizeof(uint16_t);
                 memcpy(array_zone, ac->array, num_bytes);
                 array_zone += ac->cardinality;
@@ -3551,15 +3549,15 @@ bool roaring_bitmap_to_bitset(const roaring_bitmap_t *r, bitset_t *bitset) {
                 if (max_word_index > 1024) {
                     max_word_index = 1024;
                 }
-                const bitset_container_t *src = const_CAST_bitset(c);
+                const bitset_container_t *src = downcast c;
                 memcpy(words, src->words, max_word_index * sizeof(uint64_t));
             } break;
             case ARRAY_CONTAINER_TYPE: {
-                const array_container_t *src = const_CAST_array(c);
+                const array_container_t *src = downcast c;
                 bitset_set_list(words, src->array, src->cardinality);
             } break;
             case RUN_CONTAINER_TYPE: {
-                const run_container_t *src = const_CAST_run(c);
+                const run_container_t *src = downcast c;
                 for (int32_t rlepos = 0; rlepos < src->n_runs; ++rlepos) {
                     rle16_t rle = src->runs[rlepos];
                     bitset_set_lenrange(words, rle.value, rle.length);

@@ -406,15 +406,14 @@ void convert_all_containers(roaring_bitmap_t *r, uint8_t dst_type) {
         // first step: convert src_type to ARRAY
         if (r->high_low_container.typecodes[i] == BITSET_CONTAINER_TYPE) {
             array_container_t *dst_container = array_container_from_bitset(
-                CAST_bitset(r->high_low_container.containers[i]));
-            bitset_container_free(
-                CAST_bitset(r->high_low_container.containers[i]));
+                downcast r->high_low_container.containers[i]);
+            bitset_container_free(downcast r->high_low_container.containers[i]);
             r->high_low_container.containers[i] = dst_container;
             r->high_low_container.typecodes[i] = ARRAY_CONTAINER_TYPE;
         } else if (r->high_low_container.typecodes[i] == RUN_CONTAINER_TYPE) {
             array_container_t *dst_container = array_container_from_run(
-                CAST_run(r->high_low_container.containers[i]));
-            run_container_free(CAST_run(r->high_low_container.containers[i]));
+                downcast r->high_low_container.containers[i]);
+            run_container_free(downcast r->high_low_container.containers[i]);
             r->high_low_container.containers[i] = dst_container;
             r->high_low_container.typecodes[i] = ARRAY_CONTAINER_TYPE;
         }
@@ -423,16 +422,14 @@ void convert_all_containers(roaring_bitmap_t *r, uint8_t dst_type) {
         // second step: convert ARRAY to dst_type
         if (dst_type == BITSET_CONTAINER_TYPE) {
             bitset_container_t *dst_container = bitset_container_from_array(
-                CAST_array(r->high_low_container.containers[i]));
-            array_container_free(
-                CAST_array(r->high_low_container.containers[i]));
+                downcast r->high_low_container.containers[i]);
+            array_container_free(downcast r->high_low_container.containers[i]);
             r->high_low_container.containers[i] = dst_container;
             r->high_low_container.typecodes[i] = BITSET_CONTAINER_TYPE;
         } else if (dst_type == RUN_CONTAINER_TYPE) {
             run_container_t *dst_container = run_container_from_array(
-                CAST_array(r->high_low_container.containers[i]));
-            array_container_free(
-                CAST_array(r->high_low_container.containers[i]));
+                downcast r->high_low_container.containers[i]);
+            array_container_free(downcast r->high_low_container.containers[i]);
             r->high_low_container.containers[i] = dst_container;
             r->high_low_container.typecodes[i] = RUN_CONTAINER_TYPE;
         }

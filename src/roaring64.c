@@ -991,7 +991,7 @@ bool roaring64_bitmap_remove_run_compression(roaring64_bitmap_t *r) {
     while (it.value != NULL) {
         leaf_t *leaf = (leaf_t *)it.value;
         if (get_typecode(*leaf) == RUN_CONTAINER_TYPE) {
-            run_container_t *run = CAST_run(get_container(r, *leaf));
+            run_container_t *run = downcast get_container(r, *leaf);
             int32_t card = run_container_cardinality(run);
             uint8_t new_typecode;
             container_t *new_container =
@@ -2385,13 +2385,13 @@ static inline uint32_t container_get_element_count(const container_t *c,
                                                    uint8_t typecode) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            return ((bitset_container_t *)c)->cardinality;
+            return cast(bitset_container_t *, c)->cardinality;
         }
         case ARRAY_CONTAINER_TYPE: {
-            return ((array_container_t *)c)->cardinality;
+            return cast(array_container_t *, c)->cardinality;
         }
         case RUN_CONTAINER_TYPE: {
-            return ((run_container_t *)c)->n_runs;
+            return cast(run_container_t *, c)->n_runs;
         }
         default: {
             assert(false);
@@ -2471,19 +2471,19 @@ static inline void container_frozen_serialize(const container_t *container,
     size_t size = container_get_frozen_size(container, typecode);
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
-            bitset_container_t *bitset = (bitset_container_t *)container;
+            bitset_container_t *bitset = downcast container;
             memcpy(*bitsets, bitset->words, size);
             *bitsets += BITSET_CONTAINER_SIZE_IN_WORDS;
             break;
         }
         case ARRAY_CONTAINER_TYPE: {
-            array_container_t *array = (array_container_t *)container;
+            array_container_t *array = downcast container;
             memcpy(*arrays, array->array, size);
             *arrays += container_get_element_count(container, typecode);
             break;
         }
         case RUN_CONTAINER_TYPE: {
-            run_container_t *run = (run_container_t *)container;
+            run_container_t *run = downcast container;
             memcpy(*runs, run->runs, size);
             *runs += container_get_element_count(container, typecode);
             break;
@@ -2591,7 +2591,7 @@ static container_t *container_frozen_view(uint8_t typecode, uint32_t elem_count,
             c->cardinality = elem_count;
             c->words = (uint64_t *)*bitsets;
             *bitsets += BITSET_CONTAINER_SIZE_IN_WORDS;
-            return (container_t *)c;
+            return c;
         }
         case ARRAY_CONTAINER_TYPE: {
             array_container_t *c =
@@ -2600,7 +2600,7 @@ static container_t *container_frozen_view(uint8_t typecode, uint32_t elem_count,
             c->capacity = elem_count;
             c->array = (uint16_t *)*arrays;
             *arrays += elem_count;
-            return (container_t *)c;
+            return c;
         }
         case RUN_CONTAINER_TYPE: {
             run_container_t *c =
@@ -2609,7 +2609,7 @@ static container_t *container_frozen_view(uint8_t typecode, uint32_t elem_count,
             c->capacity = elem_count;
             c->runs = (rle16_t *)*runs;
             *runs += elem_count;
-            return (container_t *)c;
+            return c;
         }
         default: {
             assert(false);

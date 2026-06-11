@@ -2,6 +2,10 @@
 tests/vendor/cmocka
 dependencies
 
+# Optional enhancements for "Needful" static analysis if built w/C++ 
+# (See comments in needful.h for explanation)
+include/roaring/needful-enhanced
+
 # Object files
 *.o
 *.ko

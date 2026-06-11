@@ -41,6 +41,7 @@ $SCRIPTPATH/include/roaring/isadetection.h
 $SCRIPTPATH/include/roaring/roaring_types.h
 $SCRIPTPATH/include/roaring/bitset/bitset.h
 $SCRIPTPATH/include/roaring/containers/container_defs.h
+$SCRIPTPATH/include/roaring/needful.h
 $SCRIPTPATH/include/roaring/array_util.h
 $SCRIPTPATH/include/roaring/bitset_util.h
 $SCRIPTPATH/include/roaring/containers/array.h
@@ -124,7 +125,7 @@ function dofile()
 
     # The preprocessor has a feature which lets you redefine the line and file:
     # https://en.cppreference.com/w/c/preprocessor/line
-    # 
+    #
     # This conceivably could be used to map back to the original source, e.g.:
     #
     #     echo "#line 8 \"$1\""
@@ -150,7 +151,7 @@ echo "Creating ${AMAL_C}..."
 {
     echo_timestamp
     echo_license
-  
+
     echo "#include \"${AMAL_H}\""
 
     newline
@@ -303,4 +304,3 @@ if [ $OS == "darwin" ]; then
 else
   echo "cc -O3 -std=c11 -shared -o libroaring.so -fPIC roaring.c"
 fi
-

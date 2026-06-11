@@ -114,7 +114,7 @@ void array_container_offset(const array_container_t *c, container_t **loc,
             lo->array[i] = c->array[i] + offset;
         }
         lo->cardinality = lo_cap;
-        *loc = (container_t *)lo;
+        *loc = lo;
     }
 
     hi_cap = c->cardinality - lo_cap;
@@ -124,7 +124,7 @@ void array_container_offset(const array_container_t *c, container_t **loc,
             hi->array[i] = c->array[lo_cap + i] + offset;
         }
         hi->cardinality = hi_cap;
-        *hic = (container_t *)hi;
+        *hic = hi;
     }
 }
 

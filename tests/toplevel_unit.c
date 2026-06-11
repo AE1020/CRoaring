@@ -108,7 +108,7 @@ DEFINE_TEST(issue433) {
     assert_true(roaring_bitmap_equals(b1, b2));
     roaring_bitmap_free(b2);
     roaring_bitmap_free(b1);
-    roaring_free(data);
+    free(data);
 }
 
 DEFINE_TEST(issue436) {
@@ -126,7 +126,7 @@ DEFINE_TEST(issue436) {
     assert_true(roaring_bitmap_equals(b1, b2));
     roaring_bitmap_free(b2);
     roaring_bitmap_free(b1);
-    roaring_free(data);
+    free(data);
 }
 
 DEFINE_TEST(issue440) {

@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   ci:
-    name: macos-llvm-${{ matrix.config.name }}
+    name: macos-llvm-${{ matrix.config.name }}-${{ matrix.variant.name }}
     runs-on: macos-latest
 
     strategy:
@@ -18,9 +18,17 @@ jobs:
         config:
           - { name: release, extra_flags: '' }
           - { name: debug,   extra_flags: '-DCMAKE_BUILD_TYPE=Debug' }
+        variant:
+          - { name: plain,    flags: '' }
+          - { name: enhanced, flags: '-DROARING_CPP_ENHANCED=ON' }
 
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: For ROARING_CPP_ENHANCED https://needful.metaeducation.com/setup
+        if: ${{ matrix.variant.name == 'enhanced' }}
+        run: |
+          git clone --depth 1 https://github.com/metaeducation/needful-enhanced include/roaring/needful-enhanced || true
 
       - name: Configure build
         run: |
@@ -29,7 +37,8 @@ jobs:
             -B build \
             -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/install" \
             -DENABLE_ROARING_TESTS=ON \
-            ${{ matrix.config.extra_flags }}
+            ${{ matrix.config.extra_flags }} \
+            ${{ matrix.variant.flags }}
 
       - name: Build/test/install
         run: |
@@ -43,7 +52,8 @@ jobs:
             -S tests/installation/find \
             -B tests/installation/find/build \
             -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/install" \
-            ${{ matrix.config.extra_flags }}
+            ${{ matrix.config.extra_flags }} \
+            ${{ matrix.variant.flags }}
           cmake --build tests/installation/find/build
 
   ci-shared:

@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   ci:
-    name: windows-vs18-${{ matrix.arch }}-${{ matrix.build_type }}
+    name: windows-vs18-${{ matrix.arch }}-${{ matrix.build_type }}-${{ matrix.variant.name }}
     runs-on: windows-2025-vs2026
     strategy:
       fail-fast: false
@@ -15,13 +15,21 @@ jobs:
         gen: [Visual Studio 18 2026]
         arch: [Win32, x64]
         build_type: [Release, Debug]
+        variant:
+          - { name: plain,    flags: '' }
+          - { name: enhanced, flags: '-DROARING_CPP_ENHANCED=ON' }
 
     steps:
       - name: checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
+      - name: For ROARING_CPP_ENHANCED https://needful.metaeducation.com/setup
+        if: ${{ matrix.variant.name == 'enhanced' }}
+        run: |
+          git clone --depth 1 https://github.com/metaeducation/needful-enhanced include/roaring/needful-enhanced || true
+
       - name: Configure
-        run: cmake -S . -B build -DENABLE_ROARING_TESTS=ON -DROARING_UNSAFE_FROZEN_TESTS=ON -G "${{ matrix.gen }}" -A ${{ matrix.arch }}
+        run: cmake -S . -B build -DENABLE_ROARING_TESTS=ON -DROARING_UNSAFE_FROZEN_TESTS=ON -G "${{ matrix.gen }}" -A ${{ matrix.arch }} ${{ matrix.variant.flags }}
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
